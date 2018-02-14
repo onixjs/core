@@ -143,7 +143,65 @@ export interface Constructable {
 export interface IDataSource {
   connect(): void;
   disconnect(): void;
-  register(name: string, schema: any);
+  register(name: string, model: any, schema: IModel);
+}
+/**
+ * @interface IModelConfig
+ * @author Jonathan Casarrubias
+ * @description Interface used as contract when declaring
+ * models.
+ */
+export interface IModelConfig {
+  datasource: new () => IDataSource;
+  schema?: {[key: string]: any};
+}
+/**
+ * @interface AccessType
+ * @author Jonathan Casarrubias
+ * @description Interface used as contract when declaring
+ * acl.
+ */
+export enum AccessType {
+  /*0*/ ALLOW,
+  /*1*/ DENY,
+}
+/**
+ * @interface IACL
+ * @author Jonathan Casarrubias
+ * @description Interface used as contract when declaring
+ * acl.
+ */
+export interface IACL {
+  [key: string]: IACLRule;
+}
+/**
+ * @interface IComponentConfig
+ * @author Jonathan Casarrubias
+ * @description Interface used as contract when declaring
+ * acl.
+ */
+export interface IComponentConfig {
+  ACL: IACLRule[];
+}
+/**
+ * @interface IACLRule
+ * @author Jonathan Casarrubias
+ * @description Interface used as contract when declaring
+ * acl.
+ */
+export interface IACLRule {
+  access: number;
+  methods: string[];
+  roles: (new () => IRole)[];
+}
+/**
+ * @interface IRole
+ * @author Jonathan Casarrubias
+ * @description Interface used as contract when declaring
+ * acl.
+ */
+export interface IRole {
+  verify(request: any): Promise<boolean>;
 }
 /**
  * @author Jonathan Casarrubias
@@ -174,4 +232,6 @@ export enum OperationType {
 export enum ReflectionKeys {
   /*0*/ MODULE_CONFIG,
   /*1*/ DATA_SOURCE,
+  /*2*/ MODEL_SCHEMA,
+  /*3*/ COMPONENT_CONFIG,
 }

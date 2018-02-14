@@ -84,9 +84,13 @@ export class OnixServer {
               const datasource: IDataSource = Injector.get(
                 Reflect.getMetadata(ReflectionKeys.DATA_SOURCE, Model),
               );
+              const schema: {[key: string]: any} = Reflect.getMetadata(
+                ReflectionKeys.MODEL_SCHEMA,
+                Model,
+              );
               Injector.set(
                 Model.name,
-                datasource.register(Model.name, new Model()),
+                datasource.register(Model.name, new Model(), schema),
               );
             });
           if (config.services)

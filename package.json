@@ -1,6 +1,6 @@
 {
  "name": "@onixjs/core",
- "version": "1.0.0-alpha.1",
+ "version": "1.0.0-alpha.2",
  "description": "OnixJS is a performant SOA back-end framework built in TypeScript for NodeJS",
  "main": "dist/index.js",
  "scripts": {
@@ -18,7 +18,7 @@
   "tslint": "tslint -c tslint.full.json --project tsconfig.json --type-check",
   "tslint:fix": "npm run lint -- --fix",
   "prepublish": "npm run build",
-  "pretest": "/bin/bash -c '[[ $(node -v) =~ [[:digit:]]+ ]] && [[ ${BASH_REMATCH[0]} -gt 6 ]]' &&npm run lint:fix && npm run clean && npm run build",
+  "pretest": "npm run lint:fix && npm run clean && npm run build",
   "test": "ava",
   "posttest": "npm run lint",
   "serve:docs": "npm run build && node ./dist/documentation"
@@ -31,7 +31,6 @@
  "files": [
   "dist",
   "dist6",
-  "compilers",
   "README.md",
   "LICENSE.md"
  ],

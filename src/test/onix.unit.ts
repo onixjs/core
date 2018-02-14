@@ -58,9 +58,12 @@ test('Onix rpc component methods', async t => {
   await onix.load('TodoApp@todo.app');
   const todo: TodoModel = new TodoModel();
   todo.text = 'Hello World';
-  const result: IAppOperation = await onix
+  const operation: IAppOperation = await onix
     .call('TodoApp.TodoModule.TodoComponent.addTodo', todo)
     .as('server');
-  t.deepEqual(todo.text, (<TodoModel>result.message).text);
-  t.truthy(result.message._id);
+  // Get result todo instance from operation message
+  const result: TodoModel = <TodoModel>operation.message;
+  // Test the text and a persisted mongodb id.
+  t.deepEqual(todo.text, result.text);
+  t.truthy(result._id);
 });

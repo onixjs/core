@@ -18,13 +18,14 @@ All of this while providing with cool and modern features and mechanisms to buil
 ## Features
 
 - Built-in TypeScript
+- Dependency Injection
 - Service Oriented Architecture (SOA - Micro Services)
 - Remote Procedure Call API (RPC)
 - Universal SDK (For any framework: Angular, React, Vue, Even Native JS)
 - Back-end compatible with any ORM (Mongoose, Sequalize, TypeORM, Etc)
 
 
-## Core Documentation
+## Core Documentation
 
 ````sh
 $ git clone git@github.com:onixjs/core.git
@@ -34,14 +35,10 @@ $ npm install && npm run serve:docs
 
 Documents will be served on [http://127.0.0.1:3000](http://127.0.0.1:3000)
 
-## Test
+## Test
 
 ````sh
 $ git clone git@github.com:onixjs/core.git
 $ cd core
 $ npm install && npm run test
 ````
-
-
-
-

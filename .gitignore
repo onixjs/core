@@ -1,4 +1,5 @@
 node_modules
+documentation
 dist
 dist6
 package-lock.json
