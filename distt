@@ -1,0 +1,6 @@
+{
+    "project": "onix-test",
+    "apps": {
+        "todo.app": "TodoApp"
+    }
+}

@@ -1,0 +1,6 @@
+dist
+dist6
+node_modules
+documentation
+*.json
+*.proto.ts

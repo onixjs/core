@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+      "emitDecoratorMetadata": true,
+      "experimentalDecorators": true,
+      "noImplicitAny": false,
+      "strictNullChecks": true,
+      "noUnusedLocals": true,
+  
+      "lib": ["es2017", "dom"],
+      "module": "commonjs",
+      "moduleResolution": "node",
+      "target": "es2017",
+      "outDir": "dist",
+      "sourceMap": true,
+      "declaration": true
+    },
+    "include": ["src", "test"],
+    "exclude": [
+      "node_modules"
+    ]
+  }
+  
