@@ -32,7 +32,7 @@ export class Onix {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.2';
+    return '1.0.0-alpha.3';
   }
   /**
    * @property apps

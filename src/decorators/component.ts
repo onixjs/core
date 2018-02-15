@@ -9,6 +9,10 @@ import {ReflectionKeys, IComponentConfig} from '../index';
  */
 export function Component(config: IComponentConfig) {
   return (Class: new () => void) => {
-    Reflect.defineMetadata(ReflectionKeys.COMPONENT_CONFIG, config, Class.prototype);
+    Reflect.defineMetadata(
+      ReflectionKeys.COMPONENT_CONFIG,
+      config,
+      Class.prototype,
+    );
   };
 }
