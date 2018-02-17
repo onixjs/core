@@ -1,4 +1,4 @@
-import {IApp} from '../index';
+import {IApp, IMetaData} from '../index';
 /**
  * @class LifeCycle
  * @author Jonathan Casarrubias
@@ -17,7 +17,11 @@ export class LifeCycle {
    * Unless a custom LifeCycle class is provided for this
    * Application.
    */
-  async onAppMethodCall(app: IApp, method: () => Promise<any>): Promise<any> {
+  async onAppMethodCall(
+    app: IApp,
+    metadata: IMetaData,
+    method: () => Promise<any>,
+  ): Promise<any> {
     console.log('Before App Method Call');
     // Before Method Call
     const result: any = await method();
@@ -36,6 +40,7 @@ export class LifeCycle {
    */
   async onModuleMethodCall(
     app: IApp,
+    metadata: IMetaData,
     method: () => Promise<any>,
   ): Promise<any> {
     console.log('Before Module Method Call');
@@ -56,6 +61,7 @@ export class LifeCycle {
    */
   async onComponentMethodCall(
     app: IApp,
+    metadata: IMetaData,
     method: () => Promise<any>,
   ): Promise<any> {
     console.log('Before Component Method Call');

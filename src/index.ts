@@ -1,19 +1,20 @@
-import {fork /*, ChildProcess*/, ChildProcess} from 'child_process';
+import {fork, ChildProcess} from 'child_process';
 import {
   IAppDirectory,
-  IConfig,
+  IAppConfig,
   OperationType,
   IAppOperation,
   ICall,
+  IRequest,
+  OnixConfig,
 } from './index';
+import {OnixServer} from './core/onix.server';
+import * as uuid from 'uuid';
 // Export all core modules & interfaces
 export * from './core';
 export * from './utils';
 export * from './decorators';
 export * from './interfaces';
-export interface OnixConfig {
-  cwd: string;
-}
 /**
  * @class Onix
  * @author Jonathan Casarrubias <gh: mean-expert-official>
@@ -35,13 +36,13 @@ export class Onix {
     return '1.0.0-alpha.3';
   }
   /**
+   * @property server
+   */
+  private _server: OnixServer;
+  /**
    * @property apps
    */
-  private apps: IAppDirectory = {};
-  /**
-   * @property list
-   */
-  private list: {[name: string]: IConfig} = {};
+  private _apps: IAppDirectory = {};
   /**
    * @constructor
    * @param config
@@ -50,7 +51,8 @@ export class Onix {
    * @description Internally exposes a given configuration.
    * It logs to the terminal the current Onix version.
    */
-  constructor(private config: OnixConfig = {cwd: process.cwd()}) {
+  constructor(public config: OnixConfig = {cwd: process.cwd(), port: 3000}) {
+    this.config = Object.assign({cwd: process.cwd(), port: 3000}, config);
     console.info('Loading Onix Server Version: ', this.version);
   }
   /**
@@ -62,19 +64,19 @@ export class Onix {
    * @description This method pings an application by the given name.
    * The application name corresponds the application class name.
    **/
-  async ping(name: string): Promise<IConfig> {
-    return new Promise<IConfig>((resolve, reject) => {
+  async ping(name: string): Promise<IAppConfig> {
+    return new Promise<IAppConfig>((resolve, reject) => {
       const to = setTimeout(
         () => reject(new Error('Application Ping timeout after 5000 ms')),
         5000,
       );
-      this.apps[name].on('message', (operation: IAppOperation) => {
+      this._apps[name].process.on('message', (operation: IAppOperation) => {
         if (operation.type === OperationType.APP_PING_RESPONSE) {
           clearTimeout(to);
-          resolve(<IConfig>operation.message);
+          resolve(<IAppConfig>operation.message);
         }
       });
-      this.apps[name].send({type: OperationType.APP_PING});
+      this._apps[name].process.send({type: OperationType.APP_PING});
     });
   }
   /**
@@ -87,17 +89,20 @@ export class Onix {
    * each other.
    **/
   async greet(): Promise<boolean[][]> {
-    const apps: string[] = Object.keys(this.apps);
+    const apps: string[] = Object.keys(this._apps);
     return Promise.all(
-      Object.keys(this.apps).map(
+      Object.keys(this._apps).map(
         (name: string) =>
           new Promise<boolean[]>((resolve, reject) => {
-            this.apps[name].on('message', (operation: IAppOperation) => {
-              if (operation.type === OperationType.APP_GREET_RESPONSE) {
-                resolve(<boolean[]>operation.message);
-              }
-            });
-            this.apps[name].send({
+            this._apps[name].process.on(
+              'message',
+              (operation: IAppOperation) => {
+                if (operation.type === OperationType.APP_GREET_RESPONSE) {
+                  resolve(<boolean[]>operation.message);
+                }
+              },
+            );
+            this._apps[name].process.send({
               type: OperationType.APP_GREET,
               message: apps,
             });
@@ -129,84 +134,85 @@ export class Onix {
       const name: string = parts.shift() || '';
       const directory: string = parts.shift() || '';
       // Verify for duplicated applications
-      if (this.apps[name]) {
+      if (this._apps[name]) {
         reject(new Error('Trying to add duplicated application'));
       } else {
         // Create a child process for this new app
-        this.apps[name] = fork(`${this.config.cwd}/${directory}`);
+        this._apps[name] = {process: fork(`${this.config.cwd}/${directory}`)};
         // Create listener for application messages
-        this.apps[name].on('message', async (operation: IAppOperation) => {
-          switch (operation.type) {
-            case OperationType.APP_CREATE_RESPONSE:
-              this.list[name] = await this.ping(name);
-              resolve(this.apps[name]);
-              break;
-            case OperationType.ONIX_REMOTE_CALL_PROCEDURE:
-              this.apps[name].send(
-                await this.call(
-                  (<ICall>operation.message).rpc,
-                  (<ICall>operation.message).request,
-                ).as(name),
-              );
-              break;
-          }
-        });
+        this._apps[name].process.on(
+          'message',
+          async (operation: IAppOperation) => {
+            switch (operation.type) {
+              case OperationType.APP_CREATE_RESPONSE:
+                //store app config for client management
+                this._apps[name].config = operation.message;
+                resolve(this._apps[name].process);
+                break;
+              case OperationType.ONIX_REMOTE_CALL_PROCEDURE:
+                this._apps[name].process.send(
+                  await this.coordinate(
+                    (<ICall>operation.message).rpc,
+                    (<ICall>operation.message).request,
+                  ),
+                );
+                break;
+            }
+          },
+        );
         // Create Application Instance (Signal)
         // Must Follow App Operation
-        this.apps[name].send(<IAppOperation>{
+        this._apps[name].process.send(<IAppOperation>{
           type: OperationType.APP_CREATE,
         });
       }
     });
   }
   /**
-   * @method call.as
+   * @method coordinate
    * @param rpc
    * @param request
    * @author Jonathan Casarrubias
    * @license MIT
    * @returns Promise<IAppOperation>
-   * @description This method will call a remote method
+   * @description This method will coordinate a call
    * using the given rpc namespace and request data.
    *
    * Example of usage:
    *
-   * onix.call('MyModel.Module.Component.Method')
+   * onix.coordinate('MyModel.Module.Component.Method')
    */
-  call(rpc: string, request?: any) {
-    return {
-      as: async (caller: string): Promise<IAppOperation> =>
-        new Promise<IAppOperation>((resolve, reject) => {
-          console.log('Onix server got remote call procedure');
-          const operation: IAppOperation = {
-            type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
-            message: {
-              rpc,
-              request,
-            },
-          };
-          const callee: string = rpc.split('.').shift() || '';
-          console.log('Onix server caller: ', caller);
-          console.log('Onix server callee: ', callee);
-          if (this.apps[callee]) {
-            this.apps[callee].on('message', (response: IAppOperation) => {
-              if (
-                response.type ===
-                OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE
-              ) {
-                console.log(
-                  `Onix server response from callee (${callee}): `,
-                  response.message,
-                );
-                resolve(response);
-              }
-            });
-            this.apps[callee].send(operation);
-          } else {
-            reject(new Error('Unable to find callee application'));
+  coordinate(rpc: string, request: IRequest) {
+    return new Promise<IAppOperation>((resolve, reject) => {
+      console.log('Onix server got remote call procedure');
+      const operation: IAppOperation = {
+        uuid: uuid(),
+        type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
+        message: <ICall>{
+          rpc,
+          request,
+        },
+      };
+      const callee: string = rpc.split('.').shift() || '';
+      console.log('Onix server caller: ', request.metadata.caller);
+      console.log('Onix server callee: ', callee);
+      if (this._apps[callee]) {
+        this._apps[callee].process.on('message', (response: IAppOperation) => {
+          if (
+            response.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE
+          ) {
+            console.log(
+              `Onix server response from callee (${callee}): `,
+              response.message,
+            );
+            resolve(response);
           }
-        }),
-    };
+        });
+        this._apps[callee].process.send(operation);
+      } else {
+        reject(new Error('Unable to find callee application'));
+      }
+    });
   }
   /**
    * @method start
@@ -217,23 +223,38 @@ export class Onix {
    * all the loaded child applications.
    */
   async start(): Promise<OperationType.APP_START_RESPONSE[]> {
-    return Promise.all(
-      // Concatenate an array of promises, starting from Onix Server,
-      // Then map each app reference to create promises for start operation.
-      [this.startServer()].concat(
-        Object.keys(this.apps).map((name: string) => {
-          return new Promise<OperationType.APP_START_RESPONSE>(
-            (resolve, reject) => {
-              this.apps[name].on('message', (operation: IAppOperation) => {
-                if (operation.type === OperationType.APP_START_RESPONSE) {
-                  resolve(OperationType.APP_START_RESPONSE);
-                }
-              });
-              this.apps[name].send({type: OperationType.APP_START});
-            },
-          );
-        }),
-      ),
+    return (
+      Promise.all(
+        // Concatenate an array of promises, starting from Onix Server,
+        // Then map each app reference to create promises for start operation.
+        [this.startAppServer()].concat(
+          Object.keys(this._apps).map((name: string) => {
+            return new Promise<OperationType.APP_START_RESPONSE>(
+              (resolve, reject) => {
+                this._apps[name].process.on(
+                  'message',
+                  (operation: IAppOperation) => {
+                    if (operation.type === OperationType.APP_START_RESPONSE) {
+                      resolve(OperationType.APP_START_RESPONSE);
+                    }
+                  },
+                );
+                this._apps[name].process.send({type: OperationType.APP_START});
+              },
+            );
+          }),
+        ),
+      )
+        // Once every app is loaded, then we start the system server
+        .then(
+          (res: OperationType.APP_START_RESPONSE[]) =>
+            new Promise<OperationType.APP_START_RESPONSE[]>(
+              async (resolve, reject) => {
+                await this.startSystemServer();
+                resolve(res);
+              },
+            ),
+        )
     );
   }
   /**
@@ -248,30 +269,58 @@ export class Onix {
     return Promise.all(
       // Concatenate an array of promises, starting from Onix Server,
       // Then map each app reference to create promises for start operation.
-      Object.keys(this.apps).map((name: string) => {
+      Object.keys(this._apps).map((name: string) => {
         return new Promise<OperationType.APP_STOP_RESPONSE>(
           (resolve, reject) => {
-            this.apps[name].on('message', (operation: IAppOperation) => {
-              if (operation.type === OperationType.APP_STOP_RESPONSE) {
-                resolve(OperationType.APP_STOP_RESPONSE);
-              }
-            });
-            this.apps[name].send({type: OperationType.APP_STOP});
+            this._apps[name].process.on(
+              'message',
+              (operation: IAppOperation) => {
+                if (operation.type === OperationType.APP_STOP_RESPONSE) {
+                  resolve(OperationType.APP_STOP_RESPONSE);
+                }
+              },
+            );
+            this._apps[name].process.send({type: OperationType.APP_STOP});
           },
         );
       }),
+    ).then(
+      (res: OperationType.APP_STOP_RESPONSE[]) =>
+        new Promise<OperationType.APP_STOP_RESPONSE[]>((resolve, reject) => {
+          this._server.stop();
+          resolve(res);
+        }),
     );
   }
   /**
-   * @method startServer
+   * @method startSystemServer
+   * @author Jonathan Casarrubias
+   * @license MIT
+   * @description This method will start the systemm level server.
+   */
+  private async startSystemServer(): Promise<OperationType.APP_START_RESPONSE> {
+    return new Promise<OperationType.APP_START_RESPONSE>(
+      async (resolve, reject) => {
+        this._server = new OnixServer(this);
+        this._server.start();
+        resolve(OperationType.APP_START_RESPONSE);
+      },
+    );
+  }
+  /**
+   * @method startAppServer
    * @author Jonathan Casarrubias
    * @license MIT
    * @returns Promise<OperationType.APP_START_RESPONSE[]>
    * @description This method will start the server application.
    */
-  private async startServer(): Promise<OperationType.APP_START_RESPONSE> {
+  private async startAppServer(): Promise<OperationType.APP_START_RESPONSE> {
     return new Promise<OperationType.APP_START_RESPONSE>((resolve, reject) => {
       resolve(OperationType.APP_START_RESPONSE);
     });
+  }
+
+  public apps(): IAppDirectory {
+    return this._apps;
   }
 }

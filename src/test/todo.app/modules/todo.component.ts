@@ -12,7 +12,19 @@ import {TodoComponentACL} from './todo.acl';
  *
  * It must implement the IComponent interface.
  */
-@Component({ACL: TodoComponentACL})
+@Component({
+  // Required ACL Rules
+  ACL: TodoComponentACL,
+  // Optional component level lifecycle
+  // will execute on every RPC Call, do your magic here. :)
+  lifecycle: async (app, metadata, method): Promise<any> => {
+    // before call
+    const result = await method();
+    // after call
+    console.log('Custom Logger: ', result);
+    return result;
+  },
+})
 export class TodoComponent implements IComponent {
   /**
    * @property service

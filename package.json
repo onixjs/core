@@ -1,7 +1,7 @@
 {
   "name": "@onixjs/core",
-  "version": "1.0.0-alpha.3",
-  "description": "OnixJS is a performant SOA back-end framework built in TypeScript for NodeJS",
+  "version": "1.0.0-alpha.4",
+  "description": "A High-Performance NodeJS SOA Framework designed to address goals like flexibility, stability and connectivity.",
   "main": "dist/index.js",
   "scripts": {
     "build": "npm run lint:fix && npm run build:dist && npm run build:dist6 && npm run build:docs",
@@ -44,12 +44,15 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "grpc": "^1.9.0",
-    "reflect-metadata": "^0.1.12"
+    "reflect-metadata": "^0.1.12",
+    "uuid": "^3.2.1",
+    "uws": "^9.14.0"
   },
   "devDependencies": {
     "@types/mongodb": "^3.0.5",
     "@types/mongoose": "^5.0.2",
+    "@types/node": "^9.4.6",
+    "@types/uws": "^0.13.1",
     "ava": "^0.25.0",
     "finalhandler": "^1.1.0",
     "mongoose": "^5.0.4",
@@ -62,10 +65,10 @@
   },
   "ava": {
     "files": [
-      "dist/test/**/*.unit.js"
+      "dist/test/**/*.acceptance.js"
     ],
     "source": [
-      "dist/test/**/*.unit.js"
+      "dist/test/**/*.acceptance.js"
     ],
     "match": [],
     "concurrency": 5,
@@ -77,5 +80,9 @@
     "compileEnhancements": false,
     "require": [],
     "babel": {}
+  },
+  "optionalDependencies": {
+    "bufferutil": "^3.0.3",
+    "utf-8-validate": "^4.0.0"
   }
 }

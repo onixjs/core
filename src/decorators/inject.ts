@@ -1,12 +1,13 @@
 import 'reflect-metadata';
-import {Constructable, Injector} from '../index';
+import {Injector} from '../core';
+import {Constructor} from '../interfaces';
 /**
  * @author Jonathan Casarrubias
  * @param Class
  * @license MIT
  * @description Decorator used to inject models
  */
-export function Inject(Class: Constructable) {
+export function Inject(Class: Constructor) {
   return (target: any, property: string) => {
     let attempts: number = 0;
     // Inject instance into the target class

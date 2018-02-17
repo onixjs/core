@@ -1,4 +1,4 @@
-import {IAppOperation, IApp, OperationType, IRequest} from '../index';
+import {IAppOperation, OperationType, IRequest, AppConstructor} from '../index';
 /**
  * @class OnixRPC
  * @author Jonathan Casarrubias
@@ -17,10 +17,10 @@ export class OnixRPC {
   /**
    * @constructor
    * @param Class
-   * @description Receives a constructable class that returns
+   * @description Receives a Constructor class that returns
    * a valid IApp object.
    */
-  constructor(private Class: new (rpc: OnixRPC) => IApp) {}
+  constructor(private Class: AppConstructor) {}
   /**
    * @method topic
    * @param topic
@@ -38,7 +38,8 @@ export class OnixRPC {
    * @description It executes a RPC Call, it can be either through
    * native OS IO events or through gRPC for remote calls.
    */
-  async call(request: IRequest = {}): Promise<any> {
+  async call(request: IRequest = {metadata: {}, payload: {}}): Promise<any> {
+    Object.assign(request.metadata, {caller: this.Class.name});
     console.log(
       `Onix app ${this.Class.name} making call on topic: ${this._topic}`,
     );

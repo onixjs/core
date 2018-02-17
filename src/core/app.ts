@@ -1,4 +1,4 @@
-import {IApp, OnixRPC, IConfig} from '../index';
+import {IApp, OnixRPC, IAppConfig} from '../index';
 /**
  * @class App
  * @author Jonathan Casarrubias
@@ -13,11 +13,11 @@ export class Application implements IApp {
     return true;
   }
   /**
-   * @access Iconfig
+   * @access IAppConfig
    * @description
    * Current configuration for this App instance.
    */
-  readonly config: IConfig;
+  readonly config: IAppConfig;
   /**
    * @method constructor
    * @param config

@@ -1,7 +1,15 @@
 import {test} from 'ava';
 import * as path from 'path';
-import {Onix, IConfig, OperationType, IAppOperation} from '../index';
+import {
+  Onix,
+  IAppConfig,
+  OperationType,
+  IAppOperation,
+  IRequest,
+  ICall,
+} from '../index';
 import {TodoModel} from './todo.app/modules/todo.model';
+import * as WebSocket from 'uws';
 const pkg = require('../../package.json');
 const cwd = path.join(process.cwd(), 'dist', 'test');
 /**
@@ -17,7 +25,7 @@ test('Onix version', t => {
 test('Onix app loader', async t => {
   const onix: Onix = new Onix({cwd});
   await onix.load('TodoApp@todo.app');
-  const config: IConfig = await onix.ping('TodoApp');
+  const config: IAppConfig = await onix.ping('TodoApp');
   t.is(config.host, '127.0.0.1');
 });
 /**
@@ -53,17 +61,62 @@ test('Onix app greeter', async t => {
 /**
  * Test Onix RPC component methods
  **/
-test('Onix rpc component methods', async t => {
+test('Onix rpc component methods from server', async t => {
   const onix: Onix = new Onix({cwd});
   await onix.load('TodoApp@todo.app');
   const todo: TodoModel = new TodoModel();
   todo.text = 'Hello World';
-  const operation: IAppOperation = await onix
-    .call('TodoApp.TodoModule.TodoComponent.addTodo', todo)
-    .as('server');
+  const operation: IAppOperation = await onix.coordinate(
+    'TodoApp.TodoModule.TodoComponent.addTodo',
+    <IRequest>{
+      metadata: {caller: 'tester', token: 'dummytoken'},
+      payload: todo,
+    },
+  );
   // Get result todo instance from operation message
   const result: TodoModel = <TodoModel>operation.message;
   // Test the text and a persisted mongodb id.
   t.deepEqual(todo.text, result.text);
   t.truthy(result._id);
+});
+
+/**
+ * Test Onix RPC component methods
+ **/
+test('Onix rpc component methods from client', async t => {
+  const onix: Onix = new Onix({cwd, port: 8081});
+  await onix.load('TodoApp@todo.app');
+  await onix.start();
+  // Websocket should be available now
+  const client: WebSocket = new WebSocket('ws://127.0.0.1:8080');
+  const todo: TodoModel = new TodoModel();
+  todo.text = 'Hello World';
+  // Send remote call through websockets
+  client.on('open', () =>
+    client.send(
+      JSON.stringify(<ICall>{
+        rpc: 'TodoApp.TodoModule.TodoComponent.addTodo',
+        request: <IRequest>{
+          metadata: {caller: 'tester', token: 'dummytoken'},
+          payload: todo,
+        },
+      }),
+    ),
+  );
+  // declare listener
+  client.on('message', async (data: string) => {
+    const operation: IAppOperation = JSON.parse(data);
+    if (operation.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE) {
+      const result: TodoModel = operation.message;
+      console.log('THE RESULT: ', result);
+      // Get result todo instance from operation message
+      //const result: TodoModel = <TodoModel>operation.message;
+      // Test the text and a persisted mongodb id.
+      t.deepEqual(todo.text, result.text);
+      t.truthy(result._id);
+      console.log('CLOSING');
+      await onix.stop();
+      console.log('CLOSED');
+    }
+  });
 });

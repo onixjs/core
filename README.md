@@ -1,7 +1,7 @@
 OnixJS
 ================
-![alt text](https://raw.githubusercontent.com/onixjs/core/master/onix-splash.svg?sanitize=true "Logo Title Text 1")
-A semi-opinionated framework designed to address goals like flexibility, stability, connectivity, and performance.
+![alt text](https://raw.githubusercontent.com/onixjs/core/master/onix-splash.png?sanitize=true "OnixJS")
+A High-Performance NodeJS SOA Framework designed to address goals like flexibility, stability and connectivity.
 
 > **Disclaimer**: This framework is in active development and won't be ready for production until we reach release candidate.
 > **Alpha release date**: Feb 2018
@@ -14,19 +14,22 @@ A semi-opinionated framework designed to address goals like flexibility, stabili
 $ npm install --save @onixjs/core
 ````
 
+`Server examples will be delivered when the onix sample is published (Expected by 1.0.0-alpha.5)`
+
 ## Phylosophy
 The OnixJS phylosophy is to empower developers to decide which dependencies they want to install and maintain in their projects.
 
 We strongly believe that staging or deploying your project, now or in a year... MUST NOT be affected by the framework or any of its dependencies, and that is the reason of why we decided to use practically zero dependencies.
 
-All of this while providing with cool and modern features and mechanisms to build a better communicated, more stable and scalable product.
+All of this while providing with cool and modern features and mechanisms to build a better communicated, scalable and highly-available product.
 
 ## Features
 
 - Built-in TypeScript
 - Dependency Injection
 - Service Oriented Architecture (SOA - Micro Services)
-- Remote Procedure Call API (RPC)
+- Module and Component Level LifeCycles (Not Opinionated Hooks)
+- Remote Procedure Call and Streams API (RPC/RPS)
 - Universal SDK (For any framework: Angular, React, Vue, Even Native JS)
 - Back-end compatible with any ORM (Mongoose, Sequalize, TypeORM, Etc)
 
@@ -75,9 +78,35 @@ API, but only if these are public.
 - **modules/module/my.lifecycle.ts**: Module level lifecycle, used to program hooks for RPC Calls (Optional).
 - **modules/module/my.datasource.ts**: Module level datasource.
 
-## Examples
+## Server Examples
 
-TODO: Once the client SDK is provided, we will publish some development examples. (Expected by 1.0.0-alpha.4)
+A complete server example will be delivered by 1.0.0-alpha.5, when the onixjs-sample is also released.
+
+## Client Examples
+
+This is an example of client implementation, it can work on any framework and runtime environment (NodeJS or Browser).
+
+```js
+import { OnixClient, AppReference} from "@onixjs/sdk";
+// Create SDK Instance (Hint: Options defaults to localhost)
+const SDK: OnixClient = new OnixClient({
+    host: '127.0.0.1',
+    port: 80
+});
+// Init SDK
+await SDK.init();
+// Create a TodoApp Reference
+const TodoAppRef: AppReference | Error = await SDK.AppReference('TodoApp');
+// Verify we actually got a Reference and not an Error
+if (TodoAppRef instanceof AppReference) {
+    const result = await TodoAppRef.Module('TodoModule')
+                                   .Component('TodoComponent')
+                                   .Method('addTodo')
+                                   .call({ text: 'Hello SDK World' });
+} else {
+    throw TodoAppRef;
+}
+```
 
 ## Core Documentation
 

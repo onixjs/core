@@ -1,5 +1,5 @@
 import {TodoModule} from './modules/todo.module';
-import {Gateway, Application} from '../../index';
+import {MicroService, Application} from '../../index';
 /**
  * @class TodoApp
  * @author Jonathan Casarrubias
@@ -7,9 +7,9 @@ import {Gateway, Application} from '../../index';
  * @description This example app is used as example
  * and for testing purposes. It imports a TodoModule.
  */
-@Gateway({
+@MicroService({
   host: '127.0.0.1',
-  port: Math.floor(Math.random() * 4000) + 3000,
+  port: 8080,
   modules: [TodoModule],
 })
 export class TodoApp extends Application {}

@@ -1,4 +1,4 @@
-import {IModule, Constructable, seal, ReflectionKeys} from '../index';
+import {IModuleConfig, Constructor, seal, ReflectionKeys} from '../index';
 /**
  * @function Module
  * @author Jonathan Casarrubias <t: johncasarrubias>
@@ -6,8 +6,8 @@ import {IModule, Constructable, seal, ReflectionKeys} from '../index';
  * @license MIT
  * @description This decorator simly seals the module class
  */
-export function Module(config: IModule) {
-  return function(ModuleClass: Constructable) {
+export function Module(config: IModuleConfig) {
+  return function(ModuleClass: Constructor) {
     seal(ModuleClass);
     Reflect.defineMetadata(
       ReflectionKeys.MODULE_CONFIG,

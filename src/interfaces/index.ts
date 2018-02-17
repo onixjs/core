@@ -6,39 +6,52 @@ import {OnixRPC} from '../index';
  * @description This interface will provida configuration features
  * for the Onix platform
  */
-export interface IConfig {
+export interface IAppConfig {
   host: string;
   port: number;
-  modules: Constructable[];
+  modules: Constructor[];
+}
+export interface AppConstructor {
+  new (rpc: OnixRPC): IApp;
 }
 /**
- * @interface IModule
+ * @interface IModuleConfig
  * @author Jonathan Casarrubias
  * @description Interface that works as a development
  * contract to define which methods must be defined
  * within any module.
  */
-export interface IModule {
+export interface IModuleConfig {
   /**
    * @property components
    * @description Module components, these components
    * will be exposed through RPC API.
    */
-  components: Constructable[];
+  components: Constructor[];
   /**
    * @property models
    * @description Models are injectables, decoupled from the
    * framework can be a model from any type of orm.
    * Not directly accessible through RPC API.
    */
-  models: Constructable[];
+  models: Constructor[];
   /**
    * @property services
    * @description Services are injectables, provides shared
    * functionalities within a module context.
    * Not directly accessible through RPC API.
    */
-  services: Constructable[];
+  services: Constructor[];
+  /**
+   * @property lifecycle
+   * @description Custom module level lifecycle, it will execute
+   * on any RPC call for any component living in this component.
+   */
+  lifecycle?: (
+    app: IApp,
+    metadata: IMetaData,
+    method: () => Promise<any>,
+  ) => Promise<any>;
 }
 /**
  * @interface ModuleDirectory
@@ -46,13 +59,19 @@ export interface IModule {
  * directory used for persisting module instances
  * on memory while the app is running.
  */
-export interface ModuleDirectory {
-  [name: string]: IModule;
+export interface IModuleDirectory {
+  [name: string]: any;
 }
 /**
  * @interface IModel
  */
 export interface IModel {
+  [name: string]: any;
+}
+/**
+ * @interface IModel
+ */
+export interface IModelDirectory {
   [name: string]: any;
 }
 /**
@@ -95,6 +114,7 @@ export interface IApp {
  * RPC calls are made.
  */
 export interface IAppOperation {
+  uuid: string;
   type: OperationType;
   message: any;
 }
@@ -106,7 +126,18 @@ export interface IAppOperation {
  * purposes on each RPC Call.
  */
 export interface IAppDirectory {
-  [key: string]: ChildProcess;
+  [key: string]: {
+    config?: IAppConfig;
+    process: ChildProcess;
+  };
+}
+/**
+ * @interface IComponentDirectory
+ * @author Jonathan Casarrubias
+ * @description IComponentDirectory inteface (TODO IMPLEMENT WHEN CREATING SDK)
+ */
+export interface IComponentDirectory {
+  [key: string]: any;
 }
 /**
  * @interface IRequest
@@ -114,24 +145,34 @@ export interface IAppDirectory {
  * @description IRequest inteface (TODO IMPLEMENT WHEN CREATING SDK)
  */
 export interface IRequest {
-  [key: string]: any;
+  metadata: {[key: string]: any};
+  payload: any;
 }
 /**
  * @interface ICall
  * @author Jonathan Casarrubias
- * @description ICALL inteface (TODO IMPLEMENT WHEN CREATING SDK)
- * add headers / options
+ * @description ICall inteface for internal (OS Event communication)
  */
 export interface ICall {
+  uuid: string;
   rpc: string;
   request: IRequest;
 }
 /**
- * @interface Constructable
+ * @interface IMetaData
  * @author Jonathan Casarrubias
- * @description Interface used as generic Constructable class.
+ * @description Interface used as generic IMetaData class.
  */
-export interface Constructable {
+export interface IMetaData {
+  [key: string]: any;
+  token?: string;
+}
+/**
+ * @interface Constructor
+ * @author Jonathan Casarrubias
+ * @description Interface used as generic Constructor class.
+ */
+export interface Constructor {
   new (...args: any[]): void;
 }
 /**
@@ -182,7 +223,16 @@ export interface IACL {
  */
 export interface IComponentConfig {
   ACL: IACLRule[];
+  /* Optional lifecycle, if defined it will be executed
+  after the module lifecycle, it won't override but
+  it will execute after the module's one */
+  lifecycle?: (
+    app: IApp,
+    metadata: IMetaData,
+    method: () => Promise<any>,
+  ) => Promise<any>;
 }
+
 /**
  * @interface IACLRule
  * @author Jonathan Casarrubias
@@ -201,8 +251,21 @@ export interface IACLRule {
  * acl.
  */
 export interface IRole {
-  verify(request: any): Promise<boolean>;
+  access(name: string, request: any): Promise<boolean>;
 }
+
+export interface ISSlConfig {
+  key: string;
+  cert: string;
+}
+
+export interface OnixConfig {
+  cwd: string;
+  port?: number;
+  ssl?: ISSlConfig;
+}
+
+export interface IOnixStatus {}
 /**
  * @author Jonathan Casarrubias
  * @enum OperationType
@@ -234,4 +297,9 @@ export enum ReflectionKeys {
   /*1*/ DATA_SOURCE,
   /*2*/ MODEL_SCHEMA,
   /*3*/ COMPONENT_CONFIG,
+  /*4*/ MODULE_COMPONENTS,
+  /*5*/ APP_MODULES,
+  /*6*/ MODULE_REFERENCE,
+  /*6*/ COMPONENT_LIFECYCLE,
+  /*7*/ RPC_METHOD,
 }

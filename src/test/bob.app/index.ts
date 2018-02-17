@@ -1,5 +1,5 @@
 import {BobModule} from './modules/bob.module';
-import {Application, Gateway} from '../../index';
+import {Application, MicroService} from '../../index';
 /**
  * @class BobApp
  * @author Jonathan Casarrubias
@@ -7,7 +7,7 @@ import {Application, Gateway} from '../../index';
  * @description This example app is used as example
  * and for testing purposes. It imports a BobModule
  */
-@Gateway({
+@MicroService({
   host: '127.0.0.1',
   port: 3001,
   modules: [BobModule],

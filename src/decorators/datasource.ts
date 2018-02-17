@@ -1,4 +1,6 @@
-import {IDataSource, Injector} from '../index';
+import {IDataSource} from '../interfaces';
+import {Injector} from '../core';
+
 /**
  * @function DataSource
  * @author Jonathan Casarrubias

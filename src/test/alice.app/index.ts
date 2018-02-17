@@ -1,5 +1,5 @@
 import {AliceModule} from './modules/alice.module';
-import {Application, Gateway} from '../../index';
+import {Application, MicroService} from '../../index';
 /**
  * @class AliceApp
  * @author Jonathan Casarrubias
@@ -7,7 +7,7 @@ import {Application, Gateway} from '../../index';
  * @description This example app is used as example
  * and for testing purposes. It imports a AliceModule
  */
-@Gateway({
+@MicroService({
   host: '127.0.0.1',
   port: 3001,
   modules: [AliceModule],
