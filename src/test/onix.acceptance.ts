@@ -69,7 +69,7 @@ test('Onix rpc component methods from server', async t => {
   const operation: IAppOperation = await onix.coordinate(
     'TodoApp.TodoModule.TodoComponent.addTodo',
     <IRequest>{
-      metadata: {caller: 'tester', token: 'dummytoken'},
+      metadata: {stream: false, caller: 'tester', token: 'dummytoken'},
       payload: todo,
     },
   );
@@ -97,7 +97,7 @@ test('Onix rpc component methods from client', async t => {
       JSON.stringify(<ICall>{
         rpc: 'TodoApp.TodoModule.TodoComponent.addTodo',
         request: <IRequest>{
-          metadata: {caller: 'tester', token: 'dummytoken'},
+          metadata: {stream: false, caller: 'tester', token: 'dummytoken'},
           payload: todo,
         },
       }),

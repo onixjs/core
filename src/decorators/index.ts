@@ -5,3 +5,4 @@ export * from './module';
 export * from './datasource';
 export * from './component';
 export * from './rpc';
+export * from './stream';

@@ -1,6 +1,7 @@
 import * as WebSocket from 'uws';
-import {CallAnswerer} from './call.answerer';
+import {CallResponser} from './call.responser';
 import {ICall, OperationType} from '../index';
+import {CallStreamer} from './call.streamer';
 /**
  * @class ClientConnection
  * @author Jonathan Casarrubias
@@ -14,7 +15,11 @@ export class ClientConnection {
    * @description It listen for messages from the current connection
    * client.
    */
-  constructor(private ws: WebSocket, private answerer: CallAnswerer) {
+  constructor(
+    private ws: WebSocket,
+    private response: CallResponser,
+    private stream: CallStreamer,
+  ) {
     this.ws.on('message', (data: string) => this.handle(JSON.parse(data)));
   }
   /**
@@ -22,15 +27,28 @@ export class ClientConnection {
    * @param data
    * @description This method will handle
    */
-  async handle(data: ICall): Promise<any> {
-    const result = await this.answerer.process(data);
-    this.ws.send(
-      JSON.stringify({
-        uuid: data.uuid,
-        type: OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE,
-        message: result,
-      }),
-    );
-    return result;
+  async handle(data: ICall) {
+    //  Remote Procedure Stream
+    if (data.request.metadata.stream) {
+      this.stream.register(data, chunk =>
+        this.ws.send(
+          JSON.stringify({
+            uuid: data.uuid,
+            type: OperationType.ONIX_REMOTE_CALL_STREAM,
+            message: chunk,
+          }),
+        ),
+      );
+    } else {
+      // Remote Procedure Call
+      const result = await this.response.process(data);
+      this.ws.send(
+        JSON.stringify({
+          uuid: data.uuid,
+          type: OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE,
+          message: result,
+        }),
+      );
+    }
   }
 }

@@ -1,13 +1,13 @@
 import {ICall, AppConstructor, ReflectionKeys} from '../interfaces';
 import {AppFactory, LifeCycle} from '../core';
 /**
- * @class CallAnswerer
+ * @class CallResponse
  * @author Jonathan Casarrubias
  * @license MIT
  * @description This class coordinates rpc calls between the broker
  * and the current application in order to send an answer back.
  */
-export class CallAnswerer {
+export class CallResponser {
   /**
    * @property lifecycle
    * @description Default lifecycle, this can be override at

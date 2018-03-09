@@ -7,9 +7,10 @@ import {
   ICall,
 } from '../index';
 import {AppFactory} from './app.factory';
-import {CallAnswerer} from './call.answerer';
+import {CallResponser} from './call.responser';
 import * as WebSocket from 'uws';
 import {ClientConnection} from './index';
+import {CallStreamer} from './call.streamer';
 /**
  * @function AppServer
  * @author Jonathan Casarrubias
@@ -31,10 +32,15 @@ export class AppServer {
    */
   private factory: AppFactory;
   /**
-   * @property answerer
-   * @description Current process call answerer reference
+   * @property streamer
+   * @description Current process call streamer reference
    */
-  private answerer: CallAnswerer;
+  private streamer: CallStreamer;
+  /**
+   * @property responser
+   * @description Current process call responser reference
+   */
+  private responser: CallResponser;
   /**
    * @constructor
    * @param AppClass
@@ -66,7 +72,8 @@ export class AppServer {
       // Event sent from broker when loading a project
       case OperationType.APP_CREATE:
         this.factory = new AppFactory(this.AppClass, this.config);
-        this.answerer = new CallAnswerer(this.factory, this.AppClass);
+        this.responser = new CallResponser(this.factory, this.AppClass);
+        this.streamer = new CallStreamer(this.factory, this.AppClass);
         break;
       // Event sent from the broker when starting a project
       case OperationType.APP_START:
@@ -85,7 +92,8 @@ export class AppServer {
         // Wait for client connections
         this.server.on(
           'connection',
-          (ws: WebSocket) => new ClientConnection(ws, this.answerer),
+          (ws: WebSocket) =>
+            new ClientConnection(ws, this.responser, this.streamer),
         );
         if (process.send)
           process.send({type: OperationType.APP_START_RESPONSE});
@@ -102,7 +110,7 @@ export class AppServer {
       // These events are done through internal processes.
       // External remote calls will be executed inside the OnixConnection
       case OperationType.ONIX_REMOTE_CALL_PROCEDURE:
-        const result = await this.answerer.process(<ICall>operation.message);
+        const result = await this.responser.process(<ICall>operation.message);
         // Send result back to broker
         if (process.send)
           process.send({

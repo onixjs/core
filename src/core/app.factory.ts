@@ -67,13 +67,20 @@ export class AppFactory {
         // Iterate Methods and verify which ones are RPC enabled
         Object.getOwnPropertyNames(Component.prototype).forEach(
           (method: string) => {
-            const enabled: IModuleConfig = Reflect.getMetadata(
+            const rpcEnabled: IModuleConfig = Reflect.getMetadata(
               ReflectionKeys.RPC_METHOD,
               this.app[Module.name][Component.name],
               method,
             );
-            if (enabled)
-              copy.modules[Module.name][Component.name][method] = true;
+            const streamEnabled: IModuleConfig = Reflect.getMetadata(
+              ReflectionKeys.STREAM_METHOD,
+              this.app[Module.name][Component.name],
+              method,
+            );
+            if (rpcEnabled || streamEnabled)
+              copy.modules[Module.name][Component.name][method] = rpcEnabled
+                ? 'rpc'
+                : 'stream';
           },
         );
       });

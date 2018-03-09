@@ -145,7 +145,7 @@ export interface IComponentDirectory {
  * @description IRequest inteface (TODO IMPLEMENT WHEN CREATING SDK)
  */
 export interface IRequest {
-  metadata: {[key: string]: any};
+  metadata: {[key: string]: any; stream: boolean};
   payload: any;
 }
 /**
@@ -284,8 +284,9 @@ export enum OperationType {
   /*9*/ APP_DESTROY_RESPONSE,
   /*10*/ APP_GREET,
   /*11*/ APP_GREET_RESPONSE,
-  /*12*/ ONIX_REMOTE_CALL_PROCEDURE,
-  /*13*/ ONIX_REMOTE_CALL_PROCEDURE_RESPONSE,
+  /*12*/ ONIX_REMOTE_CALL_STREAM,
+  /*13*/ ONIX_REMOTE_CALL_PROCEDURE,
+  /*14*/ ONIX_REMOTE_CALL_PROCEDURE_RESPONSE,
 }
 /**
  * @author Jonathan Casarrubias
@@ -302,4 +303,5 @@ export enum ReflectionKeys {
   /*6*/ MODULE_REFERENCE,
   /*6*/ COMPONENT_LIFECYCLE,
   /*7*/ RPC_METHOD,
+  /*8*/ STREAM_METHOD,
 }

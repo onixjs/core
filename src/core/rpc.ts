@@ -38,7 +38,9 @@ export class OnixRPC {
    * @description It executes a RPC Call, it can be either through
    * native OS IO events or through gRPC for remote calls.
    */
-  async call(request: IRequest = {metadata: {}, payload: {}}): Promise<any> {
+  async call(
+    request: IRequest = {metadata: {stream: false}, payload: {}},
+  ): Promise<any> {
     Object.assign(request.metadata, {caller: this.Class.name});
     console.log(
       `Onix app ${this.Class.name} making call on topic: ${this._topic}`,
