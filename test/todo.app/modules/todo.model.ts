@@ -1,5 +1,5 @@
 import {MongooseDatasource} from './mongoose.datasource';
-import {Model, IModel} from '../../../index';
+import {Model, IModel} from '../../../src/index';
 /**
  * @class TodoModel
  * @author Jonathan Casarrubias

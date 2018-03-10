@@ -1,5 +1,5 @@
 import {AliceModule} from './modules/alice.module';
-import {Application, MicroService} from '../../index';
+import {Application, MicroService} from '../../src/index';
 /**
  * @class AliceApp
  * @author Jonathan Casarrubias

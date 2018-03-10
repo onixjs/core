@@ -1,5 +1,5 @@
 import {TodoModule} from './modules/todo.module';
-import {MicroService, Application} from '../../index';
+import {MicroService, Application} from '../../src/index';
 /**
  * @class TodoApp
  * @author Jonathan Casarrubias

@@ -1,4 +1,4 @@
-import {Module} from '../../../index';
+import {Module} from '../../../src/index';
 import {TodoComponent} from './todo.component';
 import {TodoModel} from './todo.model';
 import {TodoService} from './todo.service';

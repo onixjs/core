@@ -1,4 +1,4 @@
-import {ACLRule, AccessType, Roles} from '../../../index';
+import {ACLRule, AccessType, Roles} from '../../../src/index';
 /**
  * Access Control List
  */

@@ -1,7 +1,7 @@
-import {IComponent, Inject} from '../../../index';
+import {IComponent, Inject} from '../../../src/index';
 import {TodoService} from './todo.service';
 import {TodoModel} from './todo.model';
-import {Component} from '../../../decorators/component';
+import {Component} from '../../../src/decorators/component';
 import {TodoComponentACL} from './todo.acl';
 /**
  * @class TodoComponent

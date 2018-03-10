@@ -1,5 +1,5 @@
 import {BobModule} from './modules/bob.module';
-import {Application, MicroService} from '../../index';
+import {Application, MicroService} from '../../src/index';
 /**
  * @class BobApp
  * @author Jonathan Casarrubias

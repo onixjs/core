@@ -1,8 +1,8 @@
 {
   "name": "@onixjs/core",
-  "version": "1.0.0-alpha.4.1",
+  "version": "1.0.0-alpha.5",
   "description": "The High-Performance SOA Real-Time Framework for Node.JS",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
   "scripts": {
     "build": "npm run lint:fix && npm run build:dist && npm run build:dist6 && npm run build:docs",
     "build:dist": "tsc --target es2017 --outDir dist",
@@ -37,8 +37,8 @@
     "url": "https://github.com/onixjs/core/issues"
   },
   "files": [
-    "dist",
-    "dist6",
+    "dist/src",
+    "dist6/src",
     "README.md",
     "LICENSE.md"
   ],

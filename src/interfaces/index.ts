@@ -265,6 +265,14 @@ export interface OnixConfig {
   ssl?: ISSlConfig;
 }
 
+export interface BootConfig {
+  apps: string[];
+  identityProvider?: {
+    host: string;
+    port: string;
+  };
+}
+
 export interface IOnixStatus {}
 /**
  * @author Jonathan Casarrubias

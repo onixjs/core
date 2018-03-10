@@ -1,13 +1,13 @@
 import {test} from 'ava';
 import * as path from 'path';
 import {
-  Onix,
+  OnixJS,
   IAppConfig,
   OperationType,
   IAppOperation,
   IRequest,
   ICall,
-} from '../index';
+} from '../src/index';
 import {TodoModel} from './todo.app/modules/todo.model';
 import * as WebSocket from 'uws';
 const pkg = require('../../package.json');
@@ -16,14 +16,14 @@ const cwd = path.join(process.cwd(), 'dist', 'test');
  * Test Onix Version
  **/
 test('Onix version', t => {
-  const onix: Onix = new Onix();
+  const onix: OnixJS = new OnixJS();
   t.is(onix.version, pkg.version);
 });
 /**
  * Test Onix App Loader
  */
 test('Onix app loader', async t => {
-  const onix: Onix = new Onix({cwd});
+  const onix: OnixJS = new OnixJS({cwd});
   await onix.load('TodoApp@todo.app');
   const config: IAppConfig = await onix.ping('TodoApp');
   t.is(config.host, '127.0.0.1');
@@ -32,7 +32,7 @@ test('Onix app loader', async t => {
  * Test Onix App Starter
  */
 test('Onix app starter', async t => {
-  const onix: Onix = new Onix({cwd});
+  const onix: OnixJS = new OnixJS({cwd});
   await onix.load('TodoApp@todo.app');
   const results: OperationType.APP_START_RESPONSE[] = await onix.start();
   t.deepEqual(results, [
@@ -47,7 +47,7 @@ test('Onix app starter', async t => {
  * Test Onix Apps Say Hello
  */
 test('Onix app greeter', async t => {
-  const onix: Onix = new Onix({cwd});
+  const onix: OnixJS = new OnixJS({cwd});
   await onix.load('BobApp@bob.app');
   await onix.load('AliceApp@alice.app');
   // Bidimentional array, each app call multiple apps, each
@@ -62,7 +62,7 @@ test('Onix app greeter', async t => {
  * Test Onix RPC component methods
  **/
 test('Onix rpc component methods from server', async t => {
-  const onix: Onix = new Onix({cwd});
+  const onix: OnixJS = new OnixJS({cwd});
   await onix.load('TodoApp@todo.app');
   const todo: TodoModel = new TodoModel();
   todo.text = 'Hello World';
@@ -84,7 +84,7 @@ test('Onix rpc component methods from server', async t => {
  * Test Onix RPC component methods
  **/
 test('Onix rpc component methods from client', async t => {
-  const onix: Onix = new Onix({cwd, port: 8081});
+  const onix: OnixJS = new OnixJS({cwd, port: 8081});
   await onix.load('TodoApp@todo.app');
   await onix.start();
   // Websocket should be available now

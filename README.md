@@ -1,4 +1,4 @@
-OnixJS
+OnixJS - FrameWork
 ================
 ![alt text](https://raw.githubusercontent.com/onixjs/core/master/misc/onix-splash.png "OnixJS")
 The High-Performance SOA Real-Time Framework for Node.JS.
@@ -41,7 +41,7 @@ $ npm install && npm run serve:docs
 ````
 Documents will be served on [http://127.0.0.1:3000](http://127.0.0.1:3000)
 
-Note: Core documentation is not focused on end application developers
+Note: Core documentation is not focused on end application developers.
 
 ## Test
 
@@ -50,5 +50,3 @@ $ git clone git@github.com:onixjs/core.git
 $ cd core
 $ npm install && npm run test
 ````
-
-#License

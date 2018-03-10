@@ -1,4 +1,4 @@
-src
-test
-*unit.js
-*unit.ts
+./src
+./test
+./dist/test
+./dist6/test

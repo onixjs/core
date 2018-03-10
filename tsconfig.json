@@ -14,7 +14,7 @@
       "sourceMap": true,
       "declaration": true
     },
-    "include": ["src", "test"],
+    "include": ["src", "test", "documentation.ts"],
     "exclude": [
       "node_modules"
     ]

@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import {Onix, IAppDirectory, IAppConfig} from '../index';
+import {OnixJS, IAppDirectory, IAppConfig} from '../index';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
@@ -23,7 +23,7 @@ export class OnixServer {
    * @param onix
    * @param config
    */
-  constructor(private onix: Onix) {}
+  constructor(private onix: OnixJS) {}
   /**
    * @method start
    * @author Jonathan Casarrubias

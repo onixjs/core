@@ -1,4 +1,4 @@
-import {Inject} from '../../../index';
+import {Inject} from '../../../src/index';
 import {Model} from 'mongoose';
 import {TodoModel} from './todo.model';
 /**

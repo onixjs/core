@@ -1,4 +1,4 @@
-import {Module} from '../../../index';
+import {Module} from '../../../src/index';
 import {AliceComponent} from './alice.component';
 /**
  * @class AliceModule

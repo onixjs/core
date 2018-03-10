@@ -16,7 +16,7 @@ export * from './utils';
 export * from './decorators';
 export * from './interfaces';
 /**
- * @class Onix
+ * @class OnixJS
  * @author Jonathan Casarrubias <gh: mean-expert-official>
  * @license MIT
  * @description This class provides core functionality.
@@ -27,13 +27,13 @@ export * from './interfaces';
  * This class also is the communication manager between the
  * applications cluster.
  */
-export class Onix {
+export class OnixJS {
   /**
    * @property version
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.4.1';
+    return '1.0.0-alpha.5';
   }
   /**
    * @property server
