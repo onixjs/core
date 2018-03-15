@@ -50,7 +50,7 @@ export class CallResponser {
         mainHook: Function = () => null,
         slaveHook: Function | null = null;
       // If segments are exactly 2, then it is an application level call
-      // Only god can do this type of calls.
+      // Only god can remotly execute this type of calls.
       if (segments.length === 2) {
         scope = this.factory.app;
         method = this.factory.app[segments[1]];
@@ -58,8 +58,8 @@ export class CallResponser {
       }
       // Module level call (System only, not exposed)
       if (segments.length > 2) {
-        scope = this.factory.app[segments[1]];
-        method = this.factory.app[segments[1]][segments[2]];
+        scope = this.factory.app.modules[segments[1]];
+        method = this.factory.app.modules[segments[1]][segments[2]];
         const moduleConfig = Reflect.getMetadata(
           ReflectionKeys.MODULE_CONFIG,
           scope,
@@ -70,8 +70,10 @@ export class CallResponser {
       }
       // Component level method, RPC Exposed
       if (segments.length === 4) {
-        scope = this.factory.app[segments[1]][segments[2]];
-        method = this.factory.app[segments[1]][segments[2]][segments[3]];
+        scope = this.factory.app.modules[segments[1]][segments[2]];
+        method = this.factory.app.modules[segments[1]][segments[2]][
+          segments[3]
+        ];
         const componentConfig = Reflect.getMetadata(
           ReflectionKeys.COMPONENT_CONFIG,
           scope,

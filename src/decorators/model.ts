@@ -1,4 +1,4 @@
-import {ReflectionKeys, IModelConfig} from '../index';
+import {ReflectionKeys, IModelConfig, Constructor} from '../index';
 /**
  * @function Model
  * @param DSClass
@@ -8,16 +8,7 @@ import {ReflectionKeys, IModelConfig} from '../index';
  * class as metadata for further usage.
  */
 export function Model(config: IModelConfig) {
-  return (Class: new () => void) => {
-    Reflect.defineMetadata(
-      ReflectionKeys.DATA_SOURCE,
-      config.datasource.name,
-      Class,
-    );
-    Reflect.defineMetadata(
-      ReflectionKeys.MODEL_SCHEMA,
-      config.schema || {},
-      Class,
-    );
+  return (target: Constructor) => {
+    Reflect.defineMetadata(ReflectionKeys.INJECTABLE_MODEL, config, target);
   };
 }

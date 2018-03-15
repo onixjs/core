@@ -8,7 +8,7 @@ import {
   IRequest,
   OnixConfig,
 } from './index';
-import {OnixServer} from './core/onix.server';
+import {SchemaProvider} from './core/schema.provider';
 import * as uuid from 'uuid';
 // Export all core modules & interfaces
 export * from './core';
@@ -33,12 +33,12 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.5';
+    return '1.0.0-alpha.6';
   }
   /**
    * @property server
    */
-  private _server: OnixServer;
+  private _schemaProvider: SchemaProvider;
   /**
    * @property apps
    */
@@ -287,7 +287,7 @@ export class OnixJS {
     ).then(
       (res: OperationType.APP_STOP_RESPONSE[]) =>
         new Promise<OperationType.APP_STOP_RESPONSE[]>((resolve, reject) => {
-          this._server.stop();
+          this._schemaProvider.stop();
           resolve(res);
         }),
     );
@@ -301,8 +301,8 @@ export class OnixJS {
   private async startSystemServer(): Promise<OperationType.APP_START_RESPONSE> {
     return new Promise<OperationType.APP_START_RESPONSE>(
       async (resolve, reject) => {
-        this._server = new OnixServer(this);
-        this._server.start();
+        this._schemaProvider = new SchemaProvider(this);
+        this._schemaProvider.start();
         resolve(OperationType.APP_START_RESPONSE);
       },
     );

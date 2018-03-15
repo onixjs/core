@@ -6,3 +6,6 @@ export * from './datasource';
 export * from './component';
 export * from './rpc';
 export * from './stream';
+export * from './rest';
+export * from './property';
+export * from './service';

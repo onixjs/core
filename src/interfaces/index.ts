@@ -1,16 +1,24 @@
 import {ChildProcess} from 'child_process';
 import {OnixRPC} from '../index';
+import * as http from 'http';
 /**
- * @interface IConfig
+ * @interface IAppConfig
  * @author Jonathan Casarrubias <gh: mean-expert-official>
- * @description This interface will provida configuration features
- * for the Onix platform
+ * @description This interface will provida configuration for
+ * a given application.
  */
-export interface IAppConfig {
-  host: string;
-  port: number;
+export interface IAppConfig extends DomainConfig {
+  // If network enabled, an HTTP server will be created
+  // Else only OS IO Streams will be used.
+  network?: boolean;
+  // Modules to be loaded for this application
   modules: Constructor[];
 }
+/**
+ * @interface AppConstructor
+ * @description Internal use, declares an app constructor
+ * that receives a OnixRPC class.
+ */
 export interface AppConstructor {
   new (rpc: OnixRPC): IApp;
 }
@@ -102,6 +110,7 @@ export interface IInjectable {
  * be used when creating new Application classes.
  */
 export interface IApp {
+  modules: IModuleDirectory;
   rpc: OnixRPC;
   start(): Promise<null>;
   stop(): Promise<null>;
@@ -173,7 +182,7 @@ export interface IMetaData {
  * @description Interface used as generic Constructor class.
  */
 export interface Constructor {
-  new (...args: any[]): void;
+  new (...args: any[]): any;
 }
 /**
  * @interface IDataSource
@@ -259,18 +268,53 @@ export interface ISSlConfig {
   cert: string;
 }
 
-export interface OnixConfig {
-  cwd: string;
+export interface DomainConfig {
+  host?: string;
   port?: number;
+}
+
+export interface OnixConfig extends DomainConfig {
+  cwd?: string;
   ssl?: ISSlConfig;
 }
 
 export interface BootConfig {
   apps: string[];
-  identityProvider?: {
-    host: string;
-    port: string;
-  };
+  identityProvider?: DomainConfig;
+}
+
+export interface EndpointDirectory {
+  [key: string]: HttpRequestHandler;
+}
+export interface HttpRequestHandler {
+  (req: http.IncomingMessage, res: http.ServerResponse): void;
+}
+
+export interface IRESTConfig {
+  uri: string;
+  method?: string;
+  args: IRESTArgument[];
+}
+
+export interface IRESTArgument {
+  name: string;
+  type: object;
+  source: string;
+}
+
+export interface IPropertyConfig {
+  name: string;
+  type: object;
+}
+
+export interface Directory {
+  [key: string]: any;
+}
+
+export interface ErrorResponse {
+  code: number;
+  message: string;
+  stack?: string;
 }
 
 export interface IOnixStatus {}
@@ -312,4 +356,12 @@ export enum ReflectionKeys {
   /*6*/ COMPONENT_LIFECYCLE,
   /*7*/ RPC_METHOD,
   /*8*/ STREAM_METHOD,
+  /*9*/ MODULE_NAME,
+  /*10*/ IDENTITY_PROVIDER_CONFIG,
+  /*11*/ REST_METHOD,
+  /*12*/ MODEL_PROPERTY,
+  /*13*/ INJECT_REQUEST,
+  /*14*/ INJECTABLE_MODEL,
+  /*15*/ INJECTABLE_SERVICE,
+  /*16*/ INJECTABLE_DATASOURCE,
 }

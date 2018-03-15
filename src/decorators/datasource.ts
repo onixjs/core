@@ -1,6 +1,4 @@
-import {IDataSource} from '../interfaces';
-import {Injector} from '../core';
-
+import {IDataSource, ReflectionKeys} from '../interfaces';
 /**
  * @function DataSource
  * @author Jonathan Casarrubias
@@ -10,13 +8,7 @@ import {Injector} from '../core';
  * the connection process.
  */
 export function DataSource() {
-  return (Class: new () => IDataSource) => {
-    if (!Injector.has(Class.name)) {
-      const datasource: IDataSource = new Class();
-      datasource.connect();
-      Injector.set(Class.name, datasource);
-    } else {
-      console.log(`Ignoring Duplicated datasource ${Class.name}`);
-    }
+  return (target: new () => IDataSource) => {
+    Reflect.defineMetadata(ReflectionKeys.INJECTABLE_DATASOURCE, true, target);
   };
 }

@@ -1,4 +1,4 @@
-import {IApp, OnixRPC, IAppConfig} from '../index';
+import {IApp, OnixRPC, IAppConfig, IModuleDirectory} from '../index';
 /**
  * @class App
  * @author Jonathan Casarrubias
@@ -9,6 +9,8 @@ import {IApp, OnixRPC, IAppConfig} from '../index';
  * isolated components and modules.
  **/
 export class Application implements IApp {
+  modules: IModuleDirectory = {};
+
   isAlive(): boolean {
     return true;
   }
@@ -32,7 +34,20 @@ export class Application implements IApp {
    * by custom App level functionality
    */
   async start(): Promise<null> {
-    return new Promise<null>((resolve, reject) => resolve());
+    return new Promise<null>((resolve, reject) => {
+      Object.keys(this.modules).forEach((moduleName: string) => {
+        Object.keys(this.modules[moduleName]).forEach(
+          (componentName: string) => {
+            if (
+              typeof this.modules[moduleName][componentName].init === 'function'
+            ) {
+              this.modules[moduleName][componentName].init();
+            }
+          },
+        );
+      });
+      resolve();
+    });
   }
   /**
    * @method stop

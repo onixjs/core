@@ -1,10 +1,9 @@
 import 'reflect-metadata';
 import {OnixJS, IAppDirectory, IAppConfig} from '../index';
-import * as fs from 'fs';
 import * as http from 'http';
-import * as https from 'https';
+import {HTTPServer} from './http.server';
 /**
- * @function OnixServer
+ * @function SchemaProvider
  * @author Jonathan Casarrubias
  * @param operation
  * @license MIT
@@ -12,12 +11,12 @@ import * as https from 'https';
  * It basically will serve http endpoints that will help
  * clients to subscribe to their RPC connections.
  */
-export class OnixServer {
+export class SchemaProvider {
   /**
    * @property server
    * @description http server
    */
-  private server: http.Server | https.Server;
+  private server: HTTPServer;
   /**
    * @constructor
    * @param onix
@@ -32,47 +31,18 @@ export class OnixServer {
    * HTTP or HTTPS server.
    **/
   start(): void {
-    // Verify SSL Settings
-    if (
-      this.onix.config.port === 443 &&
-      (!this.onix.config.ssl ||
-        !this.onix.config.ssl.key ||
-        this.onix.config.ssl.cert)
-    )
-      throw new Error(
-        'ONIX SERVER: SSL configuration is invalid, ssl key or cert missing',
-      );
     // Setup server
-    this.server =
-      this.onix.config.port === 443
-        ? // Create secure HTTPS Connection
-          https
-            .createServer(
-              {
-                key: fs.readFileSync(
-                  this.onix.config.ssl
-                    ? this.onix.config.ssl.key
-                    : './ssl/file.key',
-                ),
-                cert: fs.readFileSync(
-                  this.onix.config.ssl
-                    ? this.onix.config.ssl.cert
-                    : './ssl/file.cert',
-                ),
-              },
-              (req, res) => this.listener(req, res),
-            )
-            .listen(this.onix.config.port)
-        : // Create insecure HTTP Connection
-          http
-            .createServer((req, res) => this.listener(req, res))
-            .listen(this.onix.config.port);
+    this.server = new HTTPServer(this.onix.config);
+    this.server.register('/', (req, res) => this.listener(req, res));
+    this.server.start();
     // Indicate the ONIX SERVER is now listening on the given port
-    console.log(`ONIX SERVER: Listening on port ${this.onix.config.port}`);
+    console.log(
+      `ONIX SCHEMA PROVIDER: Listening on port ${this.onix.config.port}`,
+    );
   }
 
   stop(): void {
-    this.server.close();
+    this.server.stop();
   }
 
   listener(req: http.IncomingMessage, res: http.ServerResponse): void {

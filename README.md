@@ -15,15 +15,21 @@ $ npm install --save @onixjs/core
 ````
 ## Features
 
+The **OnixJS FrameWork** is an ***Enterprise Grade*** **Node.JS** platform that implements only **Industry Standards** and **Patterns** in order provide the best development experience possible:
+
 - High-Availability
 - High-Performance
-- Built-in TypeScript
-- Dependency Injection
-- Stand-Alone SDK (Can work in any framework: Angular, React, Vue, Even Native JS)
-- Service Oriented Architecture (SOA - Micro Services)
-- Module and Component Level LifeCycles (Not Opinionated Hooks)
-- Remote Procedure Call and Streams API (RPC/RPCS)
-- Back-end compatible with any ORM (Mongoose, Sequalize, TypeORM, Etc)
+- Built-in **TypeScript**
+- Identity Provider (**SSO**)
+- **OpenID** Authentication
+- **OAuth2** Resources Authorization
+- **FrameWork Agnostic SDK** *(For ES6+/TypeScript Clents)*
+- Dependency Injection (**DI**)
+- **Service Oriented Architecture or Monolithic Architecture**.
+- Representional State Transfer API (**REST API**)
+- Remote Procedure Call and Streams API (**RPC/RPCS APIs**)
+- Module and Component Level LifeCycles (**Hooks**)
+- Back-end compatible with any **ORM** *(LoopBack's Datasource Juggler, Mongoose, Sequalize, TypeORM, Etc)*
 
 ## Phylosophy
 The OnixJS phylosophy is to empower developers to decide which dependencies they want to install and maintain in their projects.

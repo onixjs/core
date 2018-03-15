@@ -3,13 +3,13 @@ import {
   IApp,
   IAppConfig,
   IModuleConfig,
-  IDataSource,
   IComponent,
   OperationType,
   Constructor,
   AppConstructor,
 } from '../interfaces';
 import {OnixRPC, Injector} from '../core';
+import {getObjectMethods} from '..';
 /**
  * @class AppFactory
  * @author Jonathan Casarrubias
@@ -24,6 +24,12 @@ export class AppFactory {
    */
   public app: IApp;
   /**
+   * @property scopes
+   * @description Module level scoped dependency injection
+   * directory.
+   */
+  public scopes: {[key: string]: Injector} = {};
+  /**
    * @constructor
    * @param Class
    * @param config
@@ -32,13 +38,85 @@ export class AppFactory {
    * inform this application has been created.
    */
   constructor(private Class: AppConstructor, private config: IAppConfig) {
-    this.setupApp();
-    this.setupModules();
-    if (process.send)
-      process.send({
-        type: OperationType.APP_CREATE_RESPONSE,
-        message: this.schema(),
-      });
+    // First of all create a new class instance
+    if (!this.app) this.app = new this.Class(new OnixRPC(this.Class));
+    // Then verify it is extending the base application
+    if (this.app.start && this.app.stop) {
+      // Now setup its modules
+      this.setupModules();
+      // Once finished send the schema back
+      // TODO: Potentially register to a provider in here
+      if (process.send)
+        process.send({
+          type: OperationType.APP_CREATE_RESPONSE,
+          message: this.schema(),
+        });
+    } else {
+      // If this is not a valid app, then throw an error
+      throw new Error(
+        `OnixJS: Invalid App "${
+          this.Class.name
+        }", it must extend from Application (import {Application} from '@onixjs/core')`,
+      );
+    }
+  }
+  /**
+   * @method setupModules
+   * @description This method will iterate over a list of defined modules for this
+   * application. It will internally call for methods to setup models, services and
+   * components.
+   */
+  private setupModules() {
+    // Iterate list of module classes
+    this.config.modules.forEach(async (Module: Constructor) => {
+      // Verify this is not a duplicated module
+      if (this.app.modules[Module.name]) return;
+      // Create a injection scope for this module
+      this.scopes[Module.name] = new Injector();
+      // Then create a module instance
+      this.app.modules[Module.name] = new Module();
+      // Get the module config from the metadata
+      const config: IModuleConfig = Reflect.getMetadata(
+        ReflectionKeys.MODULE_CONFIG,
+        this.app.modules[Module.name],
+      );
+      // No config... Bad module then
+      if (!config)
+        throw new Error(
+          `OnixJS: Invalid Module "${
+            Module.name
+          }", it must provide a module config ({ models: [], services: [], components: [] })`,
+        );
+      // Setup module components
+      if (config.components)
+        this.setupComponents(config, this.app.modules[Module.name], Module);
+    });
+  }
+  /**
+   * @method setupComponents
+   * @param config
+   * @description This method will setup components for a given module
+   * Component methods will be exposed via RPC if these are public.
+   *
+   * Injected models and services will be recursivelly instantiated.
+   * These will be singleton instances, so once instantiated, the same
+   * instance will be injected for each component.
+   */
+  setupComponents(config: IModuleConfig, moduleInstance, Module: Constructor) {
+    // Create Components instances
+    config.components.forEach((Component: new () => IComponent) => {
+      // If component does not exist
+      if (!moduleInstance[Component.name]) {
+        // Create a new component instance
+        moduleInstance[Component.name] = new Component();
+        // Then recursively inject models and services within this module
+        this.scopes[Module.name].inject(
+          Component,
+          moduleInstance[Component.name],
+          config,
+        );
+      }
+    });
   }
   /**
    * @method schema
@@ -58,145 +136,33 @@ export class AppFactory {
       // Get module metadata
       const config: IModuleConfig = Reflect.getMetadata(
         ReflectionKeys.MODULE_CONFIG,
-        this.app[Module.name],
+        this.app.modules[Module.name],
       );
       // Iterate over components to get the RPC references
       config.components.forEach((Component: Constructor) => {
         // Create reference for component methods
         copy.modules[Module.name][Component.name] = {};
+        // Create crash-safe component reference
+        const component = this.app.modules[Module.name][Component.name] || {};
         // Iterate Methods and verify which ones are RPC enabled
-        Object.getOwnPropertyNames(Component.prototype).forEach(
-          (method: string) => {
-            const rpcEnabled: IModuleConfig = Reflect.getMetadata(
-              ReflectionKeys.RPC_METHOD,
-              this.app[Module.name][Component.name],
-              method,
-            );
-            const streamEnabled: IModuleConfig = Reflect.getMetadata(
-              ReflectionKeys.STREAM_METHOD,
-              this.app[Module.name][Component.name],
-              method,
-            );
-            if (rpcEnabled || streamEnabled)
-              copy.modules[Module.name][Component.name][method] = rpcEnabled
-                ? 'rpc'
-                : 'stream';
-          },
-        );
+        getObjectMethods(component).forEach((method: string) => {
+          const rpcEnabled: IModuleConfig = Reflect.getMetadata(
+            ReflectionKeys.RPC_METHOD,
+            component,
+            method,
+          );
+          const streamEnabled: IModuleConfig = Reflect.getMetadata(
+            ReflectionKeys.STREAM_METHOD,
+            component,
+            method,
+          );
+          if (rpcEnabled || streamEnabled)
+            copy.modules[Module.name][Component.name][method] = rpcEnabled
+              ? 'rpc'
+              : 'stream';
+        });
       });
     });
     return copy;
-  }
-  /**
-   * @method setupApp
-   * @description This method simply creates a new class instance.
-   */
-  private setupApp(): void {
-    if (!this.app) this.app = new this.Class(new OnixRPC(this.Class));
-    if (!this.app.start || !this.app.stop)
-      throw new Error(
-        `OnixJS: Invalid App "${
-          this.Class.name
-        }", it must extend from Application (import {Application} from '@onixjs/core')`,
-      );
-  }
-  /**
-   * @method setupModules
-   * @description This method will iterate over a list of defined modules for this
-   * application. It will internally call for methods to setup models, services and
-   * components.
-   */
-  private setupModules() {
-    // Iterate list of module classes
-    this.config.modules.forEach((Module: Constructor) => {
-      if (this.app[Module.name]) return;
-      console.log('SETTING UP MODULE', Module.name);
-      // Create a module instance
-      this.app[Module.name] = new Module();
-      // Get module config from metadata
-      const config: IModuleConfig = Reflect.getMetadata(
-        ReflectionKeys.MODULE_CONFIG,
-        this.app[Module.name],
-      );
-      if (!config)
-        throw new Error(
-          `OnixJS: Invalid Module "${
-            Module.name
-          }", it must provide a module config ({ models: [], services: [], components: [] })`,
-        );
-      // Models are stored within the Injector
-      if (config.models)
-        this.setupModels(config, this.app[Module.name], Module);
-      // Services are stored within the Injector
-      if (config.services)
-        this.setupServices(config, this.app[Module.name], Module);
-      // Components are stored within the Module Metadata
-      if (config.components)
-        this.setupComponents(config, this.app[Module.name], Module);
-    });
-  }
-  /**
-   * @method setupModels
-   * @param config
-   * @description This method will setup models for a given module
-   * Models are specific to modules and won't be directly exposed
-   * from other modules.
-   */
-  setupModels(config: IModuleConfig, moduleInstance, Module: Constructor) {
-    // Create Components Instances
-    config.models.forEach((Model: Constructor) => {
-      //const namespace: string =  `${Module.name}.${Model.name}`;
-      const namespace: string = Model.name;
-      console.log('Initializing Model: ', namespace);
-      const datasource: IDataSource = Injector.get(
-        Reflect.getMetadata(ReflectionKeys.DATA_SOURCE, Model),
-      );
-      const schema: {[key: string]: any} = Reflect.getMetadata(
-        ReflectionKeys.MODEL_SCHEMA,
-        Model,
-      );
-      // TODO, Pass datasource reference maybe using injector maybe metadata
-      Injector.set(
-        namespace,
-        datasource.register(Model.name, new Model(), schema),
-      );
-    });
-  }
-  /**
-   * @method setupServices
-   * @param config
-   * @description This method will setup services for a given module
-   * Services are specific to modules and won't be directly exposed
-   * from other modules.
-   */
-  setupServices(config: IModuleConfig, moduleInstance, Module: Constructor) {
-    // Create Components Instances
-    config.services.forEach((Service: Constructor) => {
-      //const namespace: string =  `${Module.name}.${Service.name}`;
-      const namespace: string = Service.name;
-      console.log('Initializing Service: ', namespace);
-      if (!Injector.get(namespace)) {
-        Injector.set(namespace, new Service());
-      }
-    });
-  }
-  /**
-   * @method setupComponents
-   * @param config
-   * @description This method will setup components for a given module
-   * Component methods will be exposed via RPC if these are public.
-   *
-   * private or protected methods won't be accessible to any caller.
-   */
-  setupComponents(config: IModuleConfig, moduleInstance, Module: Constructor) {
-    // Create Components instances
-    config.components.forEach((Component: new () => IComponent) => {
-      // If component does not exist
-      if (!moduleInstance[Component.name]) {
-        console.log('Initializing Component: ', Component.name);
-        moduleInstance[Component.name] = new Component();
-        moduleInstance[Component.name].init(); // Might be migrated to other point
-      }
-    });
   }
 }

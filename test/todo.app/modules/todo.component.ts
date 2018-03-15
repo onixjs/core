@@ -1,8 +1,9 @@
-import {IComponent, Inject} from '../../../src/index';
+import {IComponent} from '../../../src/index';
 import {TodoService} from './todo.service';
 import {TodoModel} from './todo.model';
 import {Component} from '../../../src/decorators/component';
 import {TodoComponentACL} from './todo.acl';
+import {InjectService} from '../../../src/decorators';
 /**
  * @class TodoComponent
  * @author Jonathan Casarrubias
@@ -31,7 +32,7 @@ export class TodoComponent implements IComponent {
    * @description This is a dependency injection example.
    * Here we inject a singleton instance of TodoService.
    */
-  @Inject(TodoService) private service: TodoService;
+  @InjectService(TodoService) private service: TodoService;
   /**
    * @method init
    * @description Any injected reference will be guaranteed

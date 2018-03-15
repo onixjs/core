@@ -30,7 +30,7 @@ test('Onix app loader', async t => {
 });
 /**
  * Test Onix App Starter
- */
+ **/
 test('Onix app starter', async t => {
   const onix: OnixJS = new OnixJS({cwd});
   await onix.load('TodoApp@todo.app');
@@ -45,7 +45,7 @@ test('Onix app starter', async t => {
 });
 /**
  * Test Onix Apps Say Hello
- */
+ **/
 test('Onix app greeter', async t => {
   const onix: OnixJS = new OnixJS({cwd});
   await onix.load('BobApp@bob.app');
@@ -108,15 +108,12 @@ test('Onix rpc component methods from client', async t => {
     const operation: IAppOperation = JSON.parse(data);
     if (operation.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE) {
       const result: TodoModel = operation.message;
-      console.log('THE RESULT: ', result);
       // Get result todo instance from operation message
       //const result: TodoModel = <TodoModel>operation.message;
       // Test the text and a persisted mongodb id.
       t.deepEqual(todo.text, result.text);
       t.truthy(result._id);
-      console.log('CLOSING');
       await onix.stop();
-      console.log('CLOSED');
     }
   });
 });
