@@ -55,6 +55,20 @@ export class Application implements IApp {
    * by custom App level functionality
    */
   async stop(): Promise<null> {
-    return new Promise<null>((resolve, reject) => resolve());
+    return new Promise<null>((resolve, reject) => {
+      Object.keys(this.modules).forEach((moduleName: string) => {
+        Object.keys(this.modules[moduleName]).forEach(
+          (componentName: string) => {
+            if (
+              typeof this.modules[moduleName][componentName].destroy ===
+              'function'
+            ) {
+              this.modules[moduleName][componentName].destroy();
+            }
+          },
+        );
+      });
+      resolve();
+    });
   }
 }

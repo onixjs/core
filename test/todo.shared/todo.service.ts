@@ -1,6 +1,6 @@
 import {Model} from 'mongoose';
 import {TodoModel} from './todo.model';
-import {Service, InjectModel} from '../../../src/decorators';
+import {Service, Inject} from '../../src/decorators';
 /**
  * @class TodoService
  * @author Jonathan Casarrubias
@@ -22,7 +22,7 @@ export class TodoService {
    * Components or other Services, but are not exposed
    * through the RPC API as the component methods does.
    */
-  @InjectModel(TodoModel) private model: Model<any>;
+  @Inject.Model(TodoModel) private model: Model<any>;
   /**
    * @method create
    * @param todo

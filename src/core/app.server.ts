@@ -50,9 +50,10 @@ export class AppServer {
    */
   constructor(private AppClass: AppConstructor, private config: IAppConfig) {
     // Setup Node Process
-    process.on('message', (operation: IAppOperation) =>
-      this.operation(operation),
-    );
+    if (process.on)
+      process.on('message', (operation: IAppOperation) =>
+        this.operation(operation),
+      );
   }
   /**
    * @method operation
@@ -63,7 +64,7 @@ export class AppServer {
    * Each application boots a gateway instance in order
    * to be coordinated with other onix applications.
    */
-  private async operation(operation: IAppOperation) {
+  public async operation(operation: IAppOperation) {
     // Verify we got a valid operation
     if (process.send && (typeof operation !== 'object' || !operation.type))
       process.send('Onix app: unable to get child operation type');
@@ -79,31 +80,37 @@ export class AppServer {
       case OperationType.APP_START:
         // Start WebSocket Server
         await Promise.all([
-          // Start up Micra WebSocket Server
-          new Promise<WebSocket.Server>(resolve => {
-            this.server = new WebSocket.Server(
-              {host: this.config.host, port: this.config.port},
-              () => resolve(),
-            );
+          new Promise((resolve, reject) => {
+            // Start up Micra WebSocket Server
+            if (!this.config.disableNetwork) {
+              this.server = new WebSocket.Server(
+                {host: this.config.host, port: this.config.port},
+                resolve,
+              );
+              // Wait for client connections
+              this.server.on('connection', (ws: WebSocket) => {
+                ws.send(<IAppOperation>{
+                  type: OperationType.APP_PING_RESPONSE,
+                });
+                new ClientConnection(ws, this.responser, this.streamer);
+              });
+            } else {
+              resolve();
+            }
           }),
           // Start up application
           this.factory.app.start(),
         ]);
-        // Wait for client connections
-        this.server.on(
-          'connection',
-          (ws: WebSocket) =>
-            new ClientConnection(ws, this.responser, this.streamer),
-        );
         if (process.send)
           process.send({type: OperationType.APP_START_RESPONSE});
         break;
       // Event sent from the broker when stoping a project
       case OperationType.APP_STOP:
-        const close = async () =>
-          new Promise((resolve, reject) => this.server.close(resolve));
+        // If network enabled, turn off the server
+        if (!this.config.disableNetwork) {
+          this.server.close();
+        }
         await this.factory.app.stop();
-        await close();
         if (process.send) process.send({type: OperationType.APP_STOP_RESPONSE});
         break;
       // Event sent from caller -> broker -> currentApp

@@ -1,5 +1,5 @@
 import {Mongoose, Schema} from 'mongoose';
-import {IDataSource, DataSource, IModel} from '../../../src/index';
+import {IDataSource, DataSource, IModel} from '../../src/index';
 /**
  * @class MongooseDatasource
  * @author Jonathan Casarrubias

@@ -9,6 +9,10 @@ import {ReflectionKeys} from '../index';
  */
 export function Service() {
   return (Class: new () => void) => {
-    Reflect.defineMetadata(ReflectionKeys.INJECTABLE_SERVICE, true, Class);
+    Reflect.defineMetadata(
+      ReflectionKeys.INJECTABLE_SERVICE,
+      true,
+      Class.prototype,
+    );
   };
 }

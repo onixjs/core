@@ -41,7 +41,7 @@ export class CallResponser {
       // If segments are less than 2 or more than 4,
       // then this is an invalid call
       if (segments.length < 2 || segments.length > 4) {
-        reject(new Error(`RPC Call is invalid ${message.rpc}`));
+        reject(new Error(`OnixJS Error: RPC Call is invalid "${message.rpc}"`));
         return;
       }
       // Declare executable endpoint method and hooks references
@@ -84,8 +84,7 @@ export class CallResponser {
       }
       // Hey wait, but if the method doesn't exist?
       if (!method) {
-        if (process.send)
-          reject(new Error(`RPC Call is invalid ${message.rpc}`));
+        reject(new Error(`RPC Call is invalid ${message.rpc}`));
         return;
       }
       // Execute main hook, might be app/system or module level.

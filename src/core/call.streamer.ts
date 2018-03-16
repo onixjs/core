@@ -30,6 +30,6 @@ export class CallStreamer {
       return handler(new Error(`RPC Call is invalid ${message.rpc}`));
     }
     // Execute main hook, might be app/system or module level.
-    this.factory.app[segments[1]][segments[2]][segments[3]](handler);
+    this.factory.app.modules[segments[1]][segments[2]][segments[3]](handler);
   }
 }

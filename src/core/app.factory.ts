@@ -9,7 +9,7 @@ import {
   AppConstructor,
 } from '../interfaces';
 import {OnixRPC, Injector} from '../core';
-import {getObjectMethods} from '..';
+import {getObjectMethods} from '../utils';
 /**
  * @class AppFactory
  * @author Jonathan Casarrubias
@@ -40,25 +40,15 @@ export class AppFactory {
   constructor(private Class: AppConstructor, private config: IAppConfig) {
     // First of all create a new class instance
     if (!this.app) this.app = new this.Class(new OnixRPC(this.Class));
-    // Then verify it is extending the base application
-    if (this.app.start && this.app.stop) {
-      // Now setup its modules
-      this.setupModules();
-      // Once finished send the schema back
-      // TODO: Potentially register to a provider in here
-      if (process.send)
-        process.send({
-          type: OperationType.APP_CREATE_RESPONSE,
-          message: this.schema(),
-        });
-    } else {
-      // If this is not a valid app, then throw an error
-      throw new Error(
-        `OnixJS: Invalid App "${
-          this.Class.name
-        }", it must extend from Application (import {Application} from '@onixjs/core')`,
-      );
-    }
+    // Now setup its modules
+    this.setupModules();
+    // Once finished send the schema back
+    // TODO: Potentially register to a provider in here
+    if (process.send)
+      process.send({
+        type: OperationType.APP_CREATE_RESPONSE,
+        message: this.schema(),
+      });
   }
   /**
    * @method setupModules
@@ -68,7 +58,7 @@ export class AppFactory {
    */
   private setupModules() {
     // Iterate list of module classes
-    this.config.modules.forEach(async (Module: Constructor) => {
+    this.config.modules.forEach((Module: Constructor) => {
       // Verify this is not a duplicated module
       if (this.app.modules[Module.name]) return;
       // Create a injection scope for this module
@@ -81,14 +71,15 @@ export class AppFactory {
         this.app.modules[Module.name],
       );
       // No config... Bad module then
-      if (!config)
+      if (!config) {
         throw new Error(
           `OnixJS: Invalid Module "${
             Module.name
           }", it must provide a module config ({ models: [], services: [], components: [] })`,
         );
+      }
       // Setup module components
-      if (config.components)
+      if (config && config.components)
         this.setupComponents(config, this.app.modules[Module.name], Module);
     });
   }
@@ -124,7 +115,7 @@ export class AppFactory {
    * and published in a rest endpoint in order to provide enough information
    * for client sdk to connect with this application.
    */
-  private schema(): any {
+  public schema(): any {
     const copy = JSON.parse(JSON.stringify(this.config));
     // Directory must be an object and not an array, this will
     // allow SDK clients to perform much better.

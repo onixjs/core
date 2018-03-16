@@ -9,6 +9,10 @@ import {IDataSource, ReflectionKeys} from '../interfaces';
  */
 export function DataSource() {
   return (target: new () => IDataSource) => {
-    Reflect.defineMetadata(ReflectionKeys.INJECTABLE_DATASOURCE, true, target);
+    Reflect.defineMetadata(
+      ReflectionKeys.INJECTABLE_DATASOURCE,
+      true,
+      target.prototype,
+    );
   };
 }

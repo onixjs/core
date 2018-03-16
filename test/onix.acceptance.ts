@@ -2,38 +2,29 @@ import {test} from 'ava';
 import * as path from 'path';
 import {
   OnixJS,
-  IAppConfig,
   OperationType,
   IAppOperation,
   IRequest,
-  ICall,
+  isJsonString,
 } from '../src/index';
-import {TodoModel} from './todo.app/modules/todo.model';
-import * as WebSocket from 'uws';
+import {TodoModel} from './todo.shared/todo.model';
 const pkg = require('../../package.json');
 const cwd = path.join(process.cwd(), 'dist', 'test');
+import * as WebSocket from 'uws';
+import {IAppConfig, ICall} from '../src/interfaces';
 /**
  * Test Onix Version
  **/
 test('Onix version', t => {
-  const onix: OnixJS = new OnixJS();
+  const onix: OnixJS = new OnixJS({cwd, port: 8085});
   t.is(onix.version, pkg.version);
-});
-/**
- * Test Onix App Loader
- */
-test('Onix app loader', async t => {
-  const onix: OnixJS = new OnixJS({cwd});
-  await onix.load('TodoApp@todo.app');
-  const config: IAppConfig = await onix.ping('TodoApp');
-  t.is(config.host, '127.0.0.1');
 });
 /**
  * Test Onix App Starter
  **/
 test('Onix app starter', async t => {
-  const onix: OnixJS = new OnixJS({cwd});
-  await onix.load('TodoApp@todo.app');
+  const onix: OnixJS = new OnixJS({cwd, port: 8083});
+  await onix.load('TodoApp@todo2.app');
   const results: OperationType.APP_START_RESPONSE[] = await onix.start();
   t.deepEqual(results, [
     // One for the server
@@ -42,6 +33,15 @@ test('Onix app starter', async t => {
     OperationType.APP_START_RESPONSE,
   ]);
   await onix.stop();
+});
+/**
+ * Test Onix App Pinger
+ */
+test('Onix app pinger', async t => {
+  const onix: OnixJS = new OnixJS({cwd, port: 8084});
+  await onix.load('TodoApp@todo2.app');
+  const config: IAppConfig = await onix.ping('TodoApp');
+  t.true(config.disableNetwork);
 });
 /**
  * Test Onix Apps Say Hello
@@ -62,8 +62,9 @@ test('Onix app greeter', async t => {
  * Test Onix RPC component methods
  **/
 test('Onix rpc component methods from server', async t => {
-  const onix: OnixJS = new OnixJS({cwd});
-  await onix.load('TodoApp@todo.app');
+  const onix: OnixJS = new OnixJS({cwd, port: 8082});
+  await onix.load('TodoApp@todo2.app');
+  await onix.start();
   const todo: TodoModel = new TodoModel();
   todo.text = 'Hello World';
   const operation: IAppOperation = await onix.coordinate(
@@ -75,6 +76,7 @@ test('Onix rpc component methods from server', async t => {
   );
   // Get result todo instance from operation message
   const result: TodoModel = <TodoModel>operation.message;
+  await onix.stop();
   // Test the text and a persisted mongodb id.
   t.deepEqual(todo.text, result.text);
   t.truthy(result._id);
@@ -93,27 +95,34 @@ test('Onix rpc component methods from client', async t => {
   todo.text = 'Hello World';
   // Send remote call through websockets
   client.on('open', () =>
-    client.send(
-      JSON.stringify(<ICall>{
-        rpc: 'TodoApp.TodoModule.TodoComponent.addTodo',
-        request: <IRequest>{
-          metadata: {stream: false, caller: 'tester', token: 'dummytoken'},
-          payload: todo,
-        },
-      }),
+    setTimeout(
+      () =>
+        client.send(
+          JSON.stringify(<ICall>{
+            rpc: 'TodoApp.TodoModule.TodoComponent.addTodo',
+            request: <IRequest>{
+              metadata: {stream: false, caller: 'tester', token: 'dummytoken'},
+              payload: todo,
+            },
+          }),
+        ),
+      1000,
     ),
   );
   // declare listener
-  client.on('message', async (data: string) => {
-    const operation: IAppOperation = JSON.parse(data);
-    if (operation.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE) {
-      const result: TodoModel = operation.message;
-      // Get result todo instance from operation message
-      //const result: TodoModel = <TodoModel>operation.message;
-      // Test the text and a persisted mongodb id.
-      t.deepEqual(todo.text, result.text);
-      t.truthy(result._id);
-      await onix.stop();
-    }
+  const result: TodoModel = await new Promise<TodoModel>((resolve, reject) => {
+    client.on('message', async (data: string) => {
+      if (isJsonString(data)) {
+        const operation: IAppOperation = JSON.parse(data);
+        if (
+          operation.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE
+        ) {
+          resolve(operation.message);
+        }
+      }
+    });
   });
+  t.deepEqual(todo.text, result.text);
+  t.truthy(result._id);
+  await onix.stop();
 });
