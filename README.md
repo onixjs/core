@@ -56,3 +56,7 @@ $ git clone git@github.com:onixjs/core.git
 $ cd core
 $ npm install && npm run test
 ````
+## Support on Beerpay
+Hey dude! Help me out for a couple of :beers:!
+
+[![Beerpay](https://beerpay.io/onixjs/core/badge.svg?style=beer-square)](https://beerpay.io/onixjs/core)  [![Beerpay](https://beerpay.io/onixjs/core/make-wish.svg?style=flat-square)](https://beerpay.io/onixjs/core?focus=wish)
