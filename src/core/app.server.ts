@@ -161,9 +161,11 @@ export class AppServer {
       apps.map(
         (name: string) =>
           new Promise<boolean>(async (resolve, reject) => {
-            const result: boolean = await this.factory.app.rpc
-              .topic(`${name}.isAlive`)
-              .call();
+            const result: boolean = await this.responser.process(<ICall>{
+              uuid: '1',
+              rpc: `${name}.isAlive`,
+              request: {metadata: {}, payload: {}},
+            });
             resolve(result);
           }),
       ),

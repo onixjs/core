@@ -8,7 +8,7 @@ import {
   Constructor,
   AppConstructor,
 } from '../interfaces';
-import {OnixRPC, Injector} from '../core';
+import {Injector} from '../core';
 import {getObjectMethods} from '../utils';
 /**
  * @class AppFactory
@@ -39,7 +39,7 @@ export class AppFactory {
    */
   constructor(private Class: AppConstructor, private config: IAppConfig) {
     // First of all create a new class instance
-    if (!this.app) this.app = new this.Class(new OnixRPC(this.Class));
+    if (!this.app) this.app = new this.Class();
     // Now setup its modules
     this.setupModules();
     // Once finished send the schema back

@@ -41,12 +41,3 @@ function iterateObject(obj, next) {
     proto = Object.getPrototypeOf(proto);
   }
 }
-
-export function isJsonString(str) {
-  try {
-    JSON.parse(str);
-  } catch (e) {
-    return false;
-  }
-  return true;
-}

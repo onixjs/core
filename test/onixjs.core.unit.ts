@@ -8,13 +8,15 @@ import {
   RPC,
   Stream,
   Module,
-  isJsonString,
   OperationType,
   IAppOperation,
+  Component,
 } from '../src';
 import * as path from 'path';
 import {CallResponser} from '../src/core/call.responser';
 import * as WebSocket from 'uws';
+import {CallStreamer} from '../src/core/call.streamer';
+import {Utils} from '@onixjs/sdk/dist/utils';
 // Test AppFactory
 test('Core: AppFactory creates an Application.', async t => {
   class MyApp extends Application {}
@@ -23,7 +25,6 @@ test('Core: AppFactory creates an Application.', async t => {
   t.truthy(instance.app.stop);
   t.truthy(instance.app.isAlive);
   t.truthy(instance.app.modules);
-  t.truthy(instance.app.rpc);
 });
 // Test AppFactory
 test('Core: AppFactory fails on installing invalid module.', async t => {
@@ -165,7 +166,149 @@ test('Core: CallResponser invalid call.', async t => {
     'OnixJS Error: RPC Call is invalid "MyApp.MyModule.MyComponent.NotExistingMethod"',
   );
 });
+// Test CallResponser invalid call
+test('Core: CallResponser invalid call.', async t => {
+  class MyComponent {
+    @RPC()
+    testRPC() {}
+    @Stream()
+    testSTREAM() {}
+  }
+  @Module({
+    models: [],
+    services: [],
+    components: [MyComponent],
+  })
+  class MyModule {}
+  class MyApp extends Application {}
+  const factory: AppFactory = new AppFactory(MyApp, {
+    disableNetwork: true,
+    modules: [MyModule],
+  });
+  const responser: CallResponser = new CallResponser(factory, MyApp);
+  const error = await t.throws(
+    responser.process({
+      uuid: '1',
+      rpc: 'MyApp.MyModule.MyComponent.NotExistingMethod',
+      request: <IRequest>{},
+    }),
+  );
+  t.is(
+    error.message,
+    'OnixJS Error: RPC Call is invalid "MyApp.MyModule.MyComponent.NotExistingMethod"',
+  );
+});
+// Test CallResponser Hooks
+test('Core: CallResponser Hooks.', async t => {
+  @Component({
+    lifecycle: async function(app, metadata, method) {
+      const methodResult = await method();
+      return methodResult;
+    },
+  })
+  class MyComponent {
+    @RPC()
+    test(payload) {
+      return payload;
+    }
+  }
+  @Module({
+    models: [],
+    services: [],
+    components: [MyComponent],
+  })
+  class MyModule {}
+  class MyApp extends Application {}
+  const factory: AppFactory = new AppFactory(MyApp, {
+    disableNetwork: true,
+    modules: [MyModule],
+  });
+  const responser: CallResponser = new CallResponser(factory, MyApp);
+  const result = await responser.process({
+    uuid: '1',
+    rpc: 'MyApp.MyModule.MyComponent.test',
+    request: <IRequest>{
+      metadata: {stream: false},
+      payload: {
+        text: 'Hello Responser',
+      },
+    },
+  });
+  t.is(result.text, 'Hello Responser');
+});
 
+// Test CallResponser Hooks
+test('Core: CallResponser Hooks.', async t => {
+  @Component({
+    lifecycle: async function(app, metadata, method) {
+      const methodResult = await method();
+      return methodResult;
+    },
+  })
+  class MyComponent {
+    @Stream()
+    test(stream) {
+      return stream({
+        text: 'Hello Streamer',
+      });
+    }
+  }
+  @Module({
+    models: [],
+    services: [],
+    components: [MyComponent],
+  })
+  class MyModule {}
+  class MyApp extends Application {}
+  const factory: AppFactory = new AppFactory(MyApp, {
+    disableNetwork: true,
+    modules: [MyModule],
+  });
+  const streamer: CallStreamer = new CallStreamer(factory, MyApp);
+  streamer.register(
+    {
+      uuid: '1',
+      rpc: 'MyApp.MyModule.MyComponent.test',
+      request: <IRequest>{
+        metadata: {stream: true},
+        payload: {},
+      },
+    },
+    result => {
+      t.is(result.text, 'Hello Streamer');
+    },
+  );
+});
+
+// Test CallStreamer invalid call
+test('Core: CallStreamer invalid call.', async t => {
+  class MyComponent {}
+  @Module({
+    models: [],
+    services: [],
+    components: [MyComponent],
+  })
+  class MyModule {}
+  class MyApp extends Application {}
+  const factory: AppFactory = new AppFactory(MyApp, {
+    disableNetwork: true,
+    modules: [MyModule],
+  });
+  const streamer: CallStreamer = new CallStreamer(factory, MyApp);
+  streamer.register(
+    {
+      uuid: '1',
+      rpc: 'MyApp.MyModule.MyComponent.invalid.method.rpc.call',
+      request: <IRequest>{},
+    },
+    result => {
+      t.is(
+        result.message,
+        'OnixJS Error: RPC Call is invalid "MyApp.MyModule.MyComponent.invalid.method.rpc.call"',
+      );
+    },
+  );
+});
 // Test AppServer invalid operation
 test('Core: AppServer invalid operation.', async t => {
   class MyApp extends Application {}
@@ -190,7 +333,7 @@ test('Core: AppServer invalid operation.', async t => {
   const client: WebSocket = new WebSocket('ws://127.0.0.1:8090');
   // Send remote call through websockets
   client.on('message', async data => {
-    if (isJsonString(data)) {
+    if (Utils.IsJsonString(data)) {
       const operation: IAppOperation = JSON.parse(data);
       t.is(operation.message, 'welcome');
       await appServer.operation({
@@ -200,4 +343,25 @@ test('Core: AppServer invalid operation.', async t => {
       });
     }
   });
+});
+// Test Application start and stop
+test('Core: Application start and stop.', async t => {
+  class MyComponent {
+    init() {}
+    destroy() {}
+  }
+  @Module({
+    models: [],
+    services: [],
+    components: [MyComponent],
+  })
+  class MyModule {}
+  class MyApp extends Application {}
+  const appInstance: MyApp = new MyApp();
+  appInstance.modules[MyModule.name] = new MyModule();
+  appInstance.modules[MyModule.name][MyComponent.name] = new MyComponent();
+  const startResult: boolean = await appInstance.start();
+  const stopResult: boolean = await appInstance.stop();
+  t.true(startResult);
+  t.true(stopResult);
 });

@@ -1,17 +1,14 @@
 import {test} from 'ava';
 import * as path from 'path';
-import {
-  OnixJS,
-  OperationType,
-  IAppOperation,
-  IRequest,
-  isJsonString,
-} from '../src/index';
+import {OnixJS, OperationType, IAppOperation, IRequest} from '../src/index';
 import {TodoModel} from './todo.shared/todo.model';
 const pkg = require('../../package.json');
 const cwd = path.join(process.cwd(), 'dist', 'test');
 import * as WebSocket from 'uws';
 import {IAppConfig, ICall} from '../src/interfaces';
+import {OnixClient, AppReference, ComponentReference} from '@onixjs/sdk';
+import {Utils} from '@onixjs/sdk/dist/utils';
+import {NodeJS} from '@onixjs/sdk/dist/core/node.adapters';
 /**
  * Test Onix Version
  **/
@@ -62,7 +59,7 @@ test('Onix app greeter', async t => {
  * Test Onix RPC component methods
  **/
 test('Onix rpc component methods from server', async t => {
-  const onix: OnixJS = new OnixJS({cwd, port: 8082});
+  const onix: OnixJS = new OnixJS({cwd, port: 8085});
   await onix.load('TodoApp@todo2.app');
   await onix.start();
   const todo: TodoModel = new TodoModel();
@@ -86,7 +83,7 @@ test('Onix rpc component methods from server', async t => {
  * Test Onix RPC component methods
  **/
 test('Onix rpc component methods from client', async t => {
-  const onix: OnixJS = new OnixJS({cwd, port: 8081});
+  const onix: OnixJS = new OnixJS({cwd, port: 8086});
   await onix.load('TodoApp@todo.app');
   await onix.start();
   // Websocket should be available now
@@ -95,7 +92,7 @@ test('Onix rpc component methods from client', async t => {
   todo.text = 'Onix rpc component methods from client';
   // Send remote call through websockets
   client.on('message', async (data: string) => {
-    if (isJsonString(data)) {
+    if (Utils.IsJsonString(data)) {
       const operation: IAppOperation = JSON.parse(data);
       if (
         operation.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE
@@ -121,4 +118,70 @@ test('Onix rpc component methods from client', async t => {
       }),
     );
   });
+});
+
+/**
+ * Test Onix RPC component stream
+ ***/
+test('Onix rpc component stream', async t => {
+  const text: string = 'Hello SDK World';
+  const onix: OnixJS = new OnixJS({cwd, port: 8087});
+  await onix.load('TodoApp@todo3.app');
+  await onix.start();
+  // Websocket should be available now
+  const client: OnixClient = new OnixClient({
+    host: 'http://127.0.0.1',
+    port: 8087,
+    adapters: {
+      http: NodeJS.HTTP,
+      websocket: NodeJS.WebSocket,
+    },
+  });
+  // Init SDK
+  await client.init();
+  // Create a TodoApp Reference
+  const TodoAppRef: AppReference | Error = await client.AppReference('TodoApp');
+  // Verify we actually got a Reference and not an Error
+  if (TodoAppRef instanceof AppReference) {
+    const componentRef: ComponentReference = TodoAppRef.Module(
+      'TodoModule',
+    ).Component('TodoComponent');
+    // Set on create listener
+    componentRef.Method('onCreate').stream(data => {
+      console.log('HELLO STREAM: ', data);
+      t.is(data.text, text);
+    });
+    // Send new todo
+    const result = await componentRef.Method('addTodo').call({text});
+    console.log('HELLO RESULT: ', result);
+    t.is(result.text, text);
+  }
+  console.log('HERE?');
+  await onix.stop();
+  /* Init SDK
+  await client.init();
+  // Create a TodoApp Reference
+  const TodoAppRef: AppReference | Error = await client.AppReference('TodoApp');
+  // Verify we actually got a Reference and not an Error
+  if (TodoAppRef instanceof AppReference) {
+    const componentRef: ComponentReference = TodoAppRef.Module(
+      'TodoModule',
+    ).Component('TodoComponent');
+    // Set on create listener
+    componentRef.Method('onCreate').stream(data => {
+      console.log('HELLO STREAM: ', data);
+      t.is(data.text, text);
+      onix
+        .stop()
+        .then(() => {
+          console.log('STOPPED');
+        })
+        .catch(() => {});
+    });
+    console.log('SENDING: ');
+    // Create a new todo
+    await componentRef.Method('addTodo').call({text});
+  } else {
+    throw TodoAppRef;
+  }*/
 });

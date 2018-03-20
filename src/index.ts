@@ -9,12 +9,12 @@ import {
   OnixConfig,
 } from './interfaces';
 import {SchemaProvider} from './core/schema.provider';
-import * as uuid from 'uuid';
 // Export all core modules & interfaces
 export * from './core';
 export * from './utils';
 export * from './decorators';
 export * from './interfaces';
+import {Utils} from '@onixjs/sdk/dist/utils';
 /**
  * @class OnixJS
  * @author Jonathan Casarrubias <gh: mean-expert-official>
@@ -33,7 +33,7 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.7.1';
+    return '1.0.0-alpha.7.2';
   }
   /**
    * @property server
@@ -148,14 +148,6 @@ export class OnixJS {
                 this._apps[name].config = operation.message;
                 resolve(this._apps[name].process);
                 break;
-              case OperationType.ONIX_REMOTE_CALL_PROCEDURE:
-                this._apps[name].process.send(
-                  await this.coordinate(
-                    (<ICall>operation.message).rpc,
-                    (<ICall>operation.message).request,
-                  ),
-                );
-                break;
             }
           },
         );
@@ -185,7 +177,7 @@ export class OnixJS {
     return new Promise<IAppOperation>((resolve, reject) => {
       console.log('Onix server got remote call procedure');
       const operation: IAppOperation = {
-        uuid: uuid(),
+        uuid: Utils.uuid(),
         type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
         message: <ICall>{
           rpc,
