@@ -10,7 +10,7 @@ import * as http from 'http';
 export interface IAppConfig extends DomainConfig {
   // If network enabled, an HTTP server will be created
   // Else only OS IO Streams will be used.
-  network?: boolean;
+  disableNetwork?: boolean;
   // Modules to be loaded for this application
   modules: Constructor[];
 }
@@ -231,7 +231,7 @@ export interface IACL {
  * acl.
  */
 export interface IComponentConfig {
-  ACL: IACLRule[];
+  ACL?: IACLRule[];
   /* Optional lifecycle, if defined it will be executed
   after the module lifecycle, it won't override but
   it will execute after the module's one */

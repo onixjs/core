@@ -74,7 +74,15 @@ export class HTTPServer {
             .listen(this.config.port)
         : // Create insecure HTTP Connection
           http
-            .createServer((req, res) => this.listener(req, res))
+            .createServer(async (req, res) => {
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.setHeader(
+                'Access-Control-Allow-Methods',
+                'GET,PUT,POST,DELETE',
+              );
+              res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+              await this.listener(req, res);
+            })
             .listen(this.config.port);
     // Indicate the ONIX SERVER is now listening on the given port
     console.log(`ONIX SERVER: Listening on port ${this.config.port}`);
@@ -101,16 +109,12 @@ export class HTTPServer {
         this.endpoints['*'](req, res);
       } else {
         res.end(
-          JSON.stringify(
-            {
-              error: {
-                code: 404,
-                message: `Unable to process endpoint, missing listener ${endpoint}`,
-              },
+          JSON.stringify({
+            error: {
+              code: 404,
+              message: `Unable to process endpoint, missing listener ${endpoint}`,
             },
-            null,
-            2,
-          ),
+          }),
         );
       }
     } else {

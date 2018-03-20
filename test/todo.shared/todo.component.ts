@@ -1,9 +1,8 @@
-import {IComponent} from '../../../src/index';
+import {IComponent} from '../../src/index';
 import {TodoService} from './todo.service';
 import {TodoModel} from './todo.model';
-import {Component} from '../../../src/decorators/component';
-import {TodoComponentACL} from './todo.acl';
-import {InjectService} from '../../../src/decorators';
+import {Component} from '../../src/decorators/component';
+import {Inject} from '../../src/decorators/inject';
 /**
  * @class TodoComponent
  * @author Jonathan Casarrubias
@@ -14,8 +13,6 @@ import {InjectService} from '../../../src/decorators';
  * It must implement the IComponent interface.
  */
 @Component({
-  // Required ACL Rules
-  ACL: TodoComponentACL,
   // Optional component level lifecycle
   // will execute on every RPC Call, do your magic here. :)
   lifecycle: async (app, metadata, method): Promise<any> => {
@@ -32,7 +29,7 @@ export class TodoComponent implements IComponent {
    * @description This is a dependency injection example.
    * Here we inject a singleton instance of TodoService.
    */
-  @InjectService(TodoService) private service: TodoService;
+  @Inject.Service(TodoService) private service: TodoService;
   /**
    * @method init
    * @description Any injected reference will be guaranteed

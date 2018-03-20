@@ -9,6 +9,10 @@ import {ReflectionKeys, IModelConfig, Constructor} from '../index';
  */
 export function Model(config: IModelConfig) {
   return (target: Constructor) => {
-    Reflect.defineMetadata(ReflectionKeys.INJECTABLE_MODEL, config, target);
+    Reflect.defineMetadata(
+      ReflectionKeys.INJECTABLE_MODEL,
+      config,
+      target.prototype,
+    );
   };
 }

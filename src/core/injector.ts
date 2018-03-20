@@ -88,7 +88,7 @@ export class Injector {
           if (
             Reflect.hasMetadata(
               ReflectionKeys.INJECTABLE_MODEL,
-              injectable.Class,
+              injectable.Class.prototype,
             )
           )
             Object.defineProperty(instance, prop, {
@@ -100,7 +100,7 @@ export class Injector {
           if (
             Reflect.hasMetadata(
               ReflectionKeys.INJECTABLE_SERVICE,
-              injectable.Class,
+              injectable.Class.prototype,
             )
           )
             Object.defineProperty(instance, prop, {
@@ -129,7 +129,7 @@ export class Injector {
     // Get model configuration
     const modelConfig: IModelConfig = Reflect.getMetadata(
       ReflectionKeys.INJECTABLE_MODEL,
-      Model,
+      Model.prototype,
     );
     // If there is no config this is an invalid model
     if (!modelConfig)
@@ -142,6 +142,8 @@ export class Injector {
       datasource = this.get(modelConfig.datasource.name);
     } else {
       datasource = new modelConfig.datasource();
+      // TODO: Validate it is a registered datasource
+      // Or problems will arise
       datasource.connect();
       this.set(modelConfig.datasource.name, datasource);
     }

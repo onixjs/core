@@ -1,6 +1,6 @@
 {
   "name": "@onixjs/core",
-  "version": "1.0.0-alpha.6",
+  "version": "1.0.0-alpha.7",
   "description": "The High-Performance SOA Real-Time Framework for Node.JS",
   "main": "dist/src/index.js",
   "scripts": {
@@ -19,7 +19,7 @@
     "tslint:fix": "npm run lint -- --fix",
     "prepublish": "npm run build",
     "pretest": "npm run lint:fix && npm run clean && npm run build",
-    "test": "ava",
+    "test": "nyc ava && nyc report --reporter=text-lcov | coveralls",
     "posttest": "npm run lint",
     "serve:docs": "npm run build && node ./dist/documentation"
   },
@@ -43,6 +43,9 @@
     "LICENSE.md"
   ],
   "license": "MIT",
+  "engines": {
+    "node": ">=8.10.0"
+  },
   "dependencies": {
     "reflect-metadata": "^0.1.12",
     "uuid": "^3.2.1",
@@ -54,8 +57,10 @@
     "@types/node": "^9.4.6",
     "@types/uws": "^0.13.1",
     "ava": "^0.25.0",
+    "coveralls": "^3.0.0",
     "finalhandler": "^1.1.0",
     "mongoose": "^5.0.4",
+    "nyc": "^11.6.0",
     "prettier": "^1.10.2",
     "serve-static": "^1.13.1",
     "tslint": "^5.9.1",
@@ -65,9 +70,11 @@
   },
   "ava": {
     "files": [
+      "dist/test/**/*.unit.js",
       "dist/test/**/*.acceptance.js"
     ],
     "source": [
+      "dist/test/**/*.unit.js",
       "dist/test/**/*.acceptance.js"
     ],
     "match": [],
@@ -84,5 +91,18 @@
   "optionalDependencies": {
     "bufferutil": "^3.0.3",
     "utf-8-validate": "^4.0.0"
+  },
+  "nyc": {
+    "exclude": [
+      "coverage/**",
+      "dist/test/**",
+      "dist6/test/**",
+      "test/**",
+      "test{,-*}.js",
+      "**/test/**",
+      "**/*.test.js",
+      "**/__tests__/**",
+      "**/node_modules/**"
+    ]
   }
 }

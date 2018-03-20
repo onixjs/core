@@ -7,7 +7,7 @@ import {
   ICall,
   IRequest,
   OnixConfig,
-} from './index';
+} from './interfaces';
 import {SchemaProvider} from './core/schema.provider';
 import * as uuid from 'uuid';
 // Export all core modules & interfaces
@@ -33,7 +33,7 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.6';
+    return '1.0.0-alpha.7';
   }
   /**
    * @property server
@@ -66,13 +66,12 @@ export class OnixJS {
    **/
   async ping(name: string): Promise<IAppConfig> {
     return new Promise<IAppConfig>((resolve, reject) => {
-      const to = setTimeout(
-        () => reject(new Error('Application Ping timeout after 5000 ms')),
-        5000,
-      );
+      if (!this._apps[name])
+        throw new Error(
+          `OnixJS Error: Trying to ping unexisting app "${name}".`,
+        );
       this._apps[name].process.on('message', (operation: IAppOperation) => {
         if (operation.type === OperationType.APP_PING_RESPONSE) {
-          clearTimeout(to);
           resolve(<IAppConfig>operation.message);
         }
       });
@@ -128,14 +127,14 @@ export class OnixJS {
    *
    * namespace = MyApp@my.app
    **/
-  async load(namespace: string): Promise<ChildProcess> {
-    return new Promise<ChildProcess>((resolve, reject) => {
+  async load(namespace: string): Promise<ChildProcess | Error> {
+    return new Promise<ChildProcess | Error>((resolve, reject) => {
       const parts: string[] = namespace.split('@');
       const name: string = parts.shift() || '';
       const directory: string = parts.shift() || '';
       // Verify for duplicated applications
       if (this._apps[name]) {
-        reject(new Error('Trying to add duplicated application'));
+        reject(new Error('OnixJS Error: Trying to add duplicated application'));
       } else {
         // Create a child process for this new app
         this._apps[name] = {process: fork(`${this.config.cwd}/${directory}`)};
@@ -276,6 +275,7 @@ export class OnixJS {
               'message',
               (operation: IAppOperation) => {
                 if (operation.type === OperationType.APP_STOP_RESPONSE) {
+                  delete this._apps[name];
                   resolve(OperationType.APP_STOP_RESPONSE);
                 }
               },

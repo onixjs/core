@@ -1,10 +1,11 @@
-import {IACLRule, AccessType, IRole} from '../index';
+//import {IACLRule, AccessType, IRole} from '../index';
 /**
  * @class ACLRule
  * @author Jonathan Casarrubias
+ * @deprecated
  * @license MIT
  * @description This class is required to create ACL for components
- */
+ *
 export class ACLRule implements IACLRule {
   access: AccessType = AccessType.DENY;
   methods: string[];
@@ -14,4 +15,4 @@ export class ACLRule implements IACLRule {
       Object.assign(this, input);
     }
   }
-}
+}*/

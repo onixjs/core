@@ -60,6 +60,6 @@ export class SchemaProvider {
     // Response the schema now
     res.setHeader('Content-Type', 'application/json');
     res.writeHead(200, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify(configs, null, 2));
+    res.end(JSON.stringify(configs));
   }
 }
