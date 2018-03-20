@@ -74,17 +74,19 @@ export class CallResponser {
         method = this.factory.app.modules[segments[1]][segments[2]][
           segments[3]
         ];
-        const componentConfig = Reflect.getMetadata(
-          ReflectionKeys.COMPONENT_CONFIG,
-          scope,
-        );
-        slaveHook = componentConfig.lifecycle
-          ? componentConfig.lifecycle
-          : this.lifecycle.onComponentMethodCall;
+        if (scope && method) {
+          const componentConfig = Reflect.getMetadata(
+            ReflectionKeys.COMPONENT_CONFIG,
+            scope,
+          );
+          slaveHook = componentConfig.lifecycle
+            ? componentConfig.lifecycle
+            : this.lifecycle.onComponentMethodCall;
+        }
       }
       // Hey wait, but if the method doesn't exist?
       if (!method) {
-        reject(new Error(`RPC Call is invalid ${message.rpc}`));
+        reject(new Error(`OnixJS Error: RPC Call is invalid "${message.rpc}"`));
         return;
       }
       // Execute main hook, might be app/system or module level.

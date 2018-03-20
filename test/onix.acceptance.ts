@@ -90,39 +90,35 @@ test('Onix rpc component methods from client', async t => {
   await onix.load('TodoApp@todo.app');
   await onix.start();
   // Websocket should be available now
-  const client: WebSocket = new WebSocket('ws://127.0.0.1:8080');
+  const client: WebSocket = new WebSocket('ws://127.0.0.1:8079');
   const todo: TodoModel = new TodoModel();
-  todo.text = 'Hello World';
+  todo.text = 'Onix rpc component methods from client';
   // Send remote call through websockets
-  client.on('open', () =>
-    setTimeout(
-      () =>
-        client.send(
-          JSON.stringify(<ICall>{
-            rpc: 'TodoApp.TodoModule.TodoComponent.addTodo',
-            request: <IRequest>{
-              metadata: {stream: false, caller: 'tester', token: 'dummytoken'},
-              payload: todo,
-            },
-          }),
-        ),
-      1000,
-    ),
-  );
-  // declare listener
-  const result: TodoModel = await new Promise<TodoModel>((resolve, reject) => {
-    client.on('message', async (data: string) => {
-      if (isJsonString(data)) {
-        const operation: IAppOperation = JSON.parse(data);
-        if (
-          operation.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE
-        ) {
-          resolve(operation.message);
-        }
+  client.on('message', async (data: string) => {
+    if (isJsonString(data)) {
+      const operation: IAppOperation = JSON.parse(data);
+      if (
+        operation.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE
+      ) {
+        t.deepEqual(todo.text, operation.message.text);
+        t.truthy(operation.message._id);
+        await onix.stop();
       }
-    });
+    } else {
+      console.log('NO VALID JSON DATA: ', data);
+    }
   });
-  t.deepEqual(todo.text, result.text);
-  t.truthy(result._id);
-  await onix.stop();
+
+  client.on('open', () => {
+    // Send Todo
+    client.send(
+      JSON.stringify(<ICall>{
+        rpc: 'TodoApp.TodoModule.TodoComponent.addTodo',
+        request: <IRequest>{
+          metadata: {stream: false, caller: 'tester', token: 'dummytoken'},
+          payload: todo,
+        },
+      }),
+    );
+  });
 });

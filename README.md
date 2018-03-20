@@ -33,7 +33,7 @@ The **OnixJS FrameWork** is an ***Enterprise Grade*** **Node.JS** platform that 
 ## Documentation
 The following link will take you to the [OnixJS Documentation](https://github.com/onixjs/core/wiki)
 
-`DISCLAIMER: The wiki is a temporal documentation created with the spirit of start guiding developers into the OnixJS World. An Official Web and Documentation Sites are currently being developed.`
+`DISCLAIMER: The wiki is a temporal documentation created to start guiding developers into the OnixJS World. An Official Web and Mode Complete Documentation Sites are currently being developed.`
 
 ## Phylosophy
 The OnixJS phylosophy is to empower developers to decide which dependencies they want to install and maintain in their projects.
@@ -60,7 +60,11 @@ $ git clone git@github.com:onixjs/core.git
 $ cd core
 $ npm install && npm run test
 ````
-## Support on Beerpay
-Hey dude! Help me out for a couple of :beers:!
+## Contributors
 
-[![Beerpay](https://beerpay.io/onixjs/core/badge.svg?style=beer-square)](https://beerpay.io/onixjs/core)  [![Beerpay](https://beerpay.io/onixjs/core/make-wish.svg?style=flat-square)](https://beerpay.io/onixjs/core?focus=wish)
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+| [<img src="https://avatars0.githubusercontent.com/u/1533239?v=3" width="100px;"/><br /><sub>Jonathan Casarrubias</sub>](http://mean.expert/)<br />[💻](https://github.com/onixjs/core/commits?author=jonathan-casarrubias) | | | | | |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+This project follows the [all-contributors](https://github.com/kentcdodds/all-contributors) specification. Contributions of any kind welcome!
