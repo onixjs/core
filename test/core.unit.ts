@@ -1,11 +1,20 @@
 import {test} from 'ava';
-//import {AppServer} from '../src/core/app.server';
+import {AppServer} from '../src/core/app.server';
 import {Application} from '../src/core/app';
 import {AppFactory} from '../src/core/app.factory';
-import {OnixJS, IRequest, RPC, Stream, Module} from '../src';
+import {
+  OnixJS,
+  IRequest,
+  RPC,
+  Stream,
+  Module,
+  isJsonString,
+  OperationType,
+  IAppOperation,
+} from '../src';
 import * as path from 'path';
 import {CallResponser} from '../src/core/call.responser';
-//import * as WebSocket from 'uws';
+import * as WebSocket from 'uws';
 // Test AppFactory
 test('Core: AppFactory creates an Application.', async t => {
   class MyApp extends Application {}
@@ -124,7 +133,6 @@ test('Core: CallResponser invalid call.', async t => {
     'OnixJS Error: RPC Call is invalid "something.really.weird.to.call.which.is.invalid"',
   );
 });
-/*
 // Test CallResponser invalid call
 test('Core: CallResponser invalid call.', async t => {
   class MyComponent {
@@ -192,4 +200,4 @@ test('Core: AppServer invalid operation.', async t => {
       });
     }
   });
-});*/
+});
