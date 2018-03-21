@@ -1,5 +1,4 @@
 import {ChildProcess} from 'child_process';
-import {OnixRPC} from '../index';
 import * as http from 'http';
 /**
  * @interface IAppConfig
@@ -20,7 +19,7 @@ export interface IAppConfig extends DomainConfig {
  * that receives a OnixRPC class.
  */
 export interface AppConstructor {
-  new (rpc: OnixRPC): IApp;
+  new (): IApp;
 }
 /**
  * @interface IModuleConfig
@@ -111,9 +110,8 @@ export interface IInjectable {
  */
 export interface IApp {
   modules: IModuleDirectory;
-  rpc: OnixRPC;
-  start(): Promise<null>;
-  stop(): Promise<null>;
+  start(): Promise<boolean>;
+  stop(): Promise<boolean>;
   isAlive(): boolean;
 }
 /**

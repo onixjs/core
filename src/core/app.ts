@@ -1,4 +1,4 @@
-import {IApp, OnixRPC, IAppConfig, IModuleDirectory} from '../index';
+import {IApp, IAppConfig, IModuleDirectory} from '../index';
 /**
  * @class App
  * @author Jonathan Casarrubias
@@ -27,14 +27,14 @@ export class Application implements IApp {
    * Receives optional configurations as parameter.
    * Otherwise will use platform default configuration.
    */
-  constructor(public rpc: OnixRPC) {}
+  constructor() {}
   /**
    * @method start
    * @description Mock start method, this might be replaced
    * by custom App level functionality
    */
-  async start(): Promise<null> {
-    return new Promise<null>((resolve, reject) => {
+  async start(): Promise<boolean> {
+    return new Promise<boolean>((resolve, reject) => {
       Object.keys(this.modules).forEach((moduleName: string) => {
         Object.keys(this.modules[moduleName]).forEach(
           (componentName: string) => {
@@ -46,7 +46,7 @@ export class Application implements IApp {
           },
         );
       });
-      resolve();
+      resolve(true);
     });
   }
   /**
@@ -54,8 +54,8 @@ export class Application implements IApp {
    * @description Mock stop method, this might be replaced
    * by custom App level functionality
    */
-  async stop(): Promise<null> {
-    return new Promise<null>((resolve, reject) => {
+  async stop(): Promise<boolean> {
+    return new Promise<boolean>((resolve, reject) => {
       Object.keys(this.modules).forEach((moduleName: string) => {
         Object.keys(this.modules[moduleName]).forEach(
           (componentName: string) => {
@@ -68,7 +68,7 @@ export class Application implements IApp {
           },
         );
       });
-      resolve();
+      resolve(true);
     });
   }
 }

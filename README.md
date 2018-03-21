@@ -1,4 +1,4 @@
-OnixJS - FrameWork [![Beerpay](https://beerpay.io/onixjs/core/badge.svg?style=beer)](https://beerpay.io/onixjs/core) [![Beerpay](https://beerpay.io/onixjs/core/make-wish.svg?style=flat)](https://beerpay.io/onixjs/core?focus=wish) [![Travis](https://img.shields.io/travis/onixjs/core.svg)](https://travis-ci.org/onixjs/core) [![npm (scoped)](https://img.shields.io/npm/v/@onixjs/core.svg)](npmjs.com/package/@onixjs/core) [![Coveralls github](https://img.shields.io/coveralls/github/onixjs/core/development.svg)](https://coveralls.io/github/onixjs/core)
+OnixJS - FrameWork [![Beerpay](https://beerpay.io/onixjs/core/badge.svg?style=beer)](https://beerpay.io/onixjs/core) [![Beerpay](https://beerpay.io/onixjs/core/make-wish.svg?style=flat)](https://beerpay.io/onixjs/core?focus=wish) [![Coverage Status](https://coveralls.io/repos/github/onixjs/core/badge.svg?branch=master)](https://coveralls.io/github/onixjs/core?branch=development) [![Travis](https://img.shields.io/travis/onixjs/core.svg)](https://travis-ci.org/onixjs/core) [![npm (scoped)](https://img.shields.io/npm/v/@onixjs/core.svg)](http://npmjs.com/package/@onixjs/core)
 ================
 ![alt text](https://raw.githubusercontent.com/onixjs/core/master/misc/onix-splash.png "OnixJS")
 
@@ -63,8 +63,8 @@ $ npm install && npm run test
 ## Contributors
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-| [<img src="https://avatars0.githubusercontent.com/u/1533239?v=3" width="100px;"/><br /><sub>Jonathan Casarrubias</sub>](http://mean.expert/)<br />[💻](https://github.com/onixjs/core/commits?author=jonathan-casarrubias) | | | | | |
-| :---: | :---: | :---: | :---: | :---: | :---: |
+| [<img src="https://avatars0.githubusercontent.com/u/1533239?v=3" width="100px;"/><br /><sub>Jonathan Casarrubias</sub>](http://mean.expert/)<br />[💻](https://github.com/onixjs/core/commits?author=jonathan-casarrubias) |
+| :---: |
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
 This project follows the [all-contributors](https://github.com/kentcdodds/all-contributors) specification. Contributions of any kind welcome!

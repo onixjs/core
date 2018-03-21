@@ -1,6 +1,6 @@
 {
   "name": "@onixjs/core",
-  "version": "1.0.0-alpha.7.1",
+  "version": "1.0.0-alpha.7.2",
   "description": "The High-Performance SOA Real-Time Framework for Node.JS",
   "main": "dist/src/index.js",
   "scripts": {
@@ -48,7 +48,7 @@
   },
   "dependencies": {
     "reflect-metadata": "^0.1.12",
-    "uuid": "^3.2.1",
+    "@onixjs/sdk": "^1.0.0-alpha.4.1",
     "uws": "^9.14.0"
   },
   "devDependencies": {

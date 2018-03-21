@@ -3,6 +3,8 @@ import {TodoService} from './todo.service';
 import {TodoModel} from './todo.model';
 import {Component} from '../../src/decorators/component';
 import {Inject} from '../../src/decorators/inject';
+import {RPC, Stream} from '../../src/decorators';
+import {EventEmitter} from 'events';
 /**
  * @class TodoComponent
  * @author Jonathan Casarrubias
@@ -24,6 +26,7 @@ import {Inject} from '../../src/decorators/inject';
   },
 })
 export class TodoComponent implements IComponent {
+  private emmiter = new EventEmitter();
   /**
    * @property service
    * @description This is a dependency injection example.
@@ -44,8 +47,25 @@ export class TodoComponent implements IComponent {
    * RPC methods that internally might add business logic
    * or database/services calls.
    */
+  @RPC()
   async addTodo(todo: TodoModel): Promise<TodoModel> {
-    return this.service.create(todo);
+    const result = await this.service.create(todo);
+    this.emmiter.emit('onCreate', result);
+    return result;
+  }
+  /**
+   * @method onCreate
+   * @param todo
+   * @returns Promise<TodoModel>
+   * @description Example method of how to fetch data and
+   * expose it through RPC methods..
+   */
+  @Stream()
+  async onCreate(stream) {
+    this.emmiter.on('onCreate', todo => {
+      console.log('STREAMING: ', todo);
+      stream(todo);
+    });
   }
   /**
    * @method getTodo
@@ -54,6 +74,7 @@ export class TodoComponent implements IComponent {
    * @description Example method of how to fetch data and
    * expose it through RPC methods..
    */
+  @RPC()
   async getTodos(): Promise<TodoModel[]> {
     return this.service.find();
   }
