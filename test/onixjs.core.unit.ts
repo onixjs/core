@@ -11,12 +11,19 @@ import {
   OperationType,
   IAppOperation,
   Component,
+  ClientConnection,
+  ICall,
+  HostBoot,
+  Injector,
+  Service,
+  Inject,
 } from '../src';
 import * as path from 'path';
 import {CallResponser} from '../src/core/call.responser';
 import * as WebSocket from 'uws';
 import {CallStreamer} from '../src/core/call.streamer';
 import {Utils} from '@onixjs/sdk/dist/utils';
+const cwd = path.join(process.cwd(), 'dist', 'test');
 // Test AppFactory
 test('Core: AppFactory creates an Application.', async t => {
   class MyApp extends Application {}
@@ -54,7 +61,7 @@ test('Core: OnixJS loads creates duplicated Application.', async t => {
 test('Core: OnixJS pings missing Application.', async t => {
   const onix: OnixJS = new OnixJS({
     cwd: path.join(process.cwd(), 'dist', 'test'),
-    port: 8087,
+    port: 9091,
   });
   const error = await t.throws(onix.ping('MissingApp'));
   t.is(
@@ -364,4 +371,136 @@ test('Core: Application start and stop.', async t => {
   const stopResult: boolean = await appInstance.stop();
   t.true(startResult);
   t.true(stopResult);
+});
+// Test Connection
+test('Core: Connection.', async t => {
+  const payload = {hello: 'connection...'};
+  @Component({
+    lifecycle: async function(app, metadata, method) {
+      console.log('SAVING CONNECTION TEST');
+      const methodResult = await method();
+      return methodResult;
+    },
+  })
+  class MyComponent {
+    @RPC()
+    testRPC(data) {
+      return data;
+    }
+    @Stream()
+    testStream(stream) {
+      return stream(payload);
+    }
+  }
+  @Module({
+    models: [],
+    services: [],
+    components: [MyComponent],
+  })
+  class MyModule {}
+  class MyApp extends Application {}
+  const factory: AppFactory = new AppFactory(MyApp, {
+    disableNetwork: true,
+    modules: [MyModule],
+  });
+  // Create websocket server
+  const server = new WebSocket.Server({host: '127.0.0.1', port: 9090}, () => {
+    const responser = new CallResponser(factory, MyApp);
+    const streamer = new CallStreamer(factory, MyApp);
+    // Wait for client connections
+    server.on('connection', async (ws: WebSocket) => {
+      ws.send(<IAppOperation>{
+        type: OperationType.APP_PING_RESPONSE,
+      });
+      // Create a new Client Connection
+      const connection = new ClientConnection(ws, responser, streamer);
+      // Handle RPC Call
+      await connection.handle(<ICall>{
+        rpc: 'MyApp.MyModule.MyComponent.testRPC',
+        request: <IRequest>{
+          metadata: {stream: false, caller: 'tester', token: 'dummytoken'},
+          payload,
+        },
+      });
+      // Handle Stream
+      await connection.handle(<ICall>{
+        rpc: 'MyApp.MyModule.MyComponent.testStream',
+        request: <IRequest>{
+          metadata: {stream: true, caller: 'tester', token: 'dummytoken'},
+          payload,
+        },
+      });
+    });
+    // Create Client
+    const client: WebSocket = new WebSocket('ws://127.0.0.1:9090');
+    // Create Listeners
+    client.on('message', (data: string) => {
+      if (Utils.IsJsonString(data)) {
+        const rpcOp: IAppOperation = JSON.parse(data);
+        if (rpcOp.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE) {
+          t.is(payload.hello, rpcOp.message.hello);
+        }
+        const streamOp: IAppOperation = JSON.parse(data);
+        if (streamOp.type === OperationType.ONIX_REMOTE_CALL_STREAM) {
+          t.is(payload.hello, streamOp.message.hello);
+        }
+      }
+    });
+  });
+});
+// Test host boot
+test('Core: host boot.', async t => {
+  const host: HostBoot = new HostBoot(
+    {
+      apps: ['TodoApp@todo4.app'],
+    },
+    {cwd},
+  );
+  await t.notThrows(host.run());
+});
+// Test host boot throws
+test('Core: host boot throws.', async t => {
+  const error = await t.throws(
+    new Promise(() => {
+      new HostBoot(
+        {
+          apps: [],
+        },
+        {cwd},
+      );
+    }),
+  );
+  t.is(error.message, 'OnixJS: No apps to be loaded');
+});
+// Test Injector
+test('Core: Injector.', async t => {
+  const text: string = 'Hello Service';
+  const injector: Injector = new Injector();
+  // Create Injectable Service
+  @Service()
+  class MyService {
+    test() {
+      return text;
+    }
+  }
+  // Create a component that will inject the service
+  class MyComponent {
+    @Inject.Service(MyService) service: MyService;
+    @Inject.Service(MyService) service2: MyService; // Singleton service
+    test(): string {
+      return this.service.test();
+    }
+    test2(): string {
+      return this.service2.test();
+    }
+  }
+  // create component instance
+  const instance: MyComponent = new MyComponent();
+  injector.inject(MyComponent, instance, {
+    models: [],
+    services: [MyService],
+    components: [],
+  });
+  t.is(instance.test(), text);
+  t.is(instance.test2(), text);
 });

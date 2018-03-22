@@ -33,7 +33,7 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.7.2';
+    return '1.0.0-alpha.7.3';
   }
   /**
    * @property server
