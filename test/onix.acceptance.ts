@@ -148,40 +148,11 @@ test('Onix rpc component stream', async t => {
     ).Component('TodoComponent');
     // Set on create listener
     componentRef.Method('onCreate').stream(data => {
-      console.log('HELLO STREAM: ', data);
       t.is(data.text, text);
     });
     // Send new todo
     const result = await componentRef.Method('addTodo').call({text});
-    console.log('HELLO RESULT: ', result);
     t.is(result.text, text);
   }
-  console.log('HERE?');
   await onix.stop();
-  /* Init SDK
-  await client.init();
-  // Create a TodoApp Reference
-  const TodoAppRef: AppReference | Error = await client.AppReference('TodoApp');
-  // Verify we actually got a Reference and not an Error
-  if (TodoAppRef instanceof AppReference) {
-    const componentRef: ComponentReference = TodoAppRef.Module(
-      'TodoModule',
-    ).Component('TodoComponent');
-    // Set on create listener
-    componentRef.Method('onCreate').stream(data => {
-      console.log('HELLO STREAM: ', data);
-      t.is(data.text, text);
-      onix
-        .stop()
-        .then(() => {
-          console.log('STOPPED');
-        })
-        .catch(() => {});
-    });
-    console.log('SENDING: ');
-    // Create a new todo
-    await componentRef.Method('addTodo').call({text});
-  } else {
-    throw TodoAppRef;
-  }*/
 });

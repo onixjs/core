@@ -5,6 +5,8 @@
  * @deprecated
  * @license MIT
  * @description This class is required to create ACL for components
+ * 
+ * TODO: MIGRATE TO IDENTITY PROVIDER MODULE
  *
 export class ACLRule implements IACLRule {
   access: AccessType = AccessType.DENY;

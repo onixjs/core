@@ -1,4 +1,4 @@
-OnixJS - FrameWork [![Beerpay](https://beerpay.io/onixjs/core/badge.svg?style=beer)](https://beerpay.io/onixjs/core) [![Beerpay](https://beerpay.io/onixjs/core/make-wish.svg?style=flat)](https://beerpay.io/onixjs/core?focus=wish) [![Coverage Status](https://coveralls.io/repos/github/onixjs/core/badge.svg?branch=master)](https://coveralls.io/github/onixjs/core?branch=development) [![Travis](https://img.shields.io/travis/onixjs/core.svg)](https://travis-ci.org/onixjs/core) [![npm (scoped)](https://img.shields.io/npm/v/@onixjs/core.svg)](http://npmjs.com/package/@onixjs/core)
+OnixJS - FrameWork [![Beerpay](https://beerpay.io/onixjs/core/badge.svg?style=beer)](https://beerpay.io/onixjs/core) [![Beerpay](https://beerpay.io/onixjs/core/make-wish.svg?style=flat)](https://beerpay.io/onixjs/core?focus=wish) [![Coverage Status](https://coveralls.io/repos/github/onixjs/core/badge.svg?branch=master)](https://coveralls.io/github/onixjs/core?branch=master) [![Travis](https://img.shields.io/travis/onixjs/core.svg)](https://travis-ci.org/onixjs/core) [![npm (scoped)](https://img.shields.io/npm/v/@onixjs/core.svg)](http://npmjs.com/package/@onixjs/core)
 ================
 ![alt text](https://raw.githubusercontent.com/onixjs/core/master/misc/onix-splash.png "OnixJS")
 
@@ -33,7 +33,7 @@ The **OnixJS FrameWork** is an ***Enterprise Grade*** **Node.JS** platform that 
 ## Documentation
 The following link will take you to the [OnixJS Documentation](https://github.com/onixjs/core/wiki)
 
-`DISCLAIMER: The wiki is a temporal documentation created to start guiding developers into the OnixJS World. An Official Web and Mode Complete Documentation Sites are currently being developed.`
+`DISCLAIMER: The wiki is a temporal documentation created to start guiding developers into the OnixJS World. An Official Web and More Complete Documentation Sites are currently being developed.`
 
 ## Phylosophy
 The OnixJS phylosophy is to empower developers to decide which dependencies they want to install and maintain in their projects.
