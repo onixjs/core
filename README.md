@@ -25,18 +25,18 @@ The **OnixJS FrameWork** is an ***Enterprise Grade*** **Node.JS** platform that 
 - **FrameWork Agnostic SDK** *(For ES6+/TypeScript Clients)*
 - Dependency Injection (**DI**)
 - **Service Oriented Architecture or Monolithic Architecture**.
-- Representional State Transfer API (**REST API**)
+- Representational State Transfer API (**REST API**)
 - Remote Procedure Call and Streams API (**RPC/RPCS APIs**)
 - Module and Component Level LifeCycles (**Hooks**)
-- Back-end compatible with any **ORM** *(LoopBack's Datasource Juggler, Mongoose, Sequalize, TypeORM, Etc)*
+- Back-end compatible with any **ORM** *(LoopBack's Datasource Juggler, Mongoose, Sequelize, TypeORM, Etc)*
 
 ## Documentation
 The following link will take you to the [OnixJS Documentation](https://github.com/onixjs/core/wiki)
 
 `DISCLAIMER: The wiki is a temporal documentation created to start guiding developers into the OnixJS World. An Official Web and More Complete Documentation Sites are currently being developed.`
 
-## Phylosophy
-The OnixJS phylosophy is to empower developers to decide which dependencies they want to install and maintain in their projects.
+## Philosophy
+The OnixJS philosophy is to empower developers to decide which dependencies they want to install and maintain in their projects.
 
 We strongly believe that staging or deploying your project, now or in a year... MUST NOT be affected by the framework or any of its dependencies, and that is the reason of why we decided to use practically zero dependencies.
 
