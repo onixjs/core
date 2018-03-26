@@ -5,7 +5,7 @@ import {TodoModel} from './todo.shared/todo.model';
 const pkg = require('../../package.json');
 const cwd = path.join(process.cwd(), 'dist', 'test');
 import * as WebSocket from 'uws';
-import {IAppConfig, ICall} from '../src/interfaces';
+import {IAppConfig, OnixMessage} from '../src/interfaces';
 import {OnixClient, AppReference, ComponentReference} from '@onixjs/sdk';
 import {Utils} from '@onixjs/sdk/dist/utils';
 import {NodeJS} from '@onixjs/sdk/dist/core/node.adapters';
@@ -109,7 +109,7 @@ test('Onix rpc component methods from client', async t => {
   client.on('open', () => {
     // Send Todo
     client.send(
-      JSON.stringify(<ICall>{
+      JSON.stringify(<OnixMessage>{
         rpc: 'TodoApp.TodoModule.TodoComponent.addTodo',
         request: <IRequest>{
           metadata: {stream: false, caller: 'tester', token: 'dummytoken'},

@@ -1,4 +1,5 @@
-import {IApp, IMetaData} from '../index';
+import {IApp} from '../index';
+import {OnixMessage} from '../interfaces';
 /**
  * @class LifeCycle
  * @author Jonathan Casarrubias
@@ -19,7 +20,7 @@ export class LifeCycle {
    */
   async onAppMethodCall(
     app: IApp,
-    metadata: IMetaData,
+    message: OnixMessage,
     method: () => Promise<any>,
   ): Promise<any> {
     console.log('Before App Method Call');
@@ -40,7 +41,7 @@ export class LifeCycle {
    */
   async onModuleMethodCall(
     app: IApp,
-    metadata: IMetaData,
+    message: OnixMessage,
     method: () => Promise<any>,
   ): Promise<any> {
     console.log('Before Module Method Call');
@@ -61,7 +62,7 @@ export class LifeCycle {
    */
   async onComponentMethodCall(
     app: IApp,
-    metadata: IMetaData,
+    message: OnixMessage,
     method: () => Promise<any>,
   ): Promise<any> {
     console.log('Before Component Method Call');

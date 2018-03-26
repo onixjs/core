@@ -4,7 +4,7 @@ import {
   IAppOperation,
   IAppConfig,
   AppConstructor,
-  ICall,
+  OnixMessage,
 } from '../index';
 import {AppFactory} from './app.factory';
 import {CallResponser} from './call.responser';
@@ -117,7 +117,9 @@ export class AppServer {
       // These events are done through internal processes.
       // External remote calls will be executed inside the OnixConnection
       case OperationType.ONIX_REMOTE_CALL_PROCEDURE:
-        const result = await this.responser.process(<ICall>operation.message);
+        const result = await this.responser.process(
+          <OnixMessage>operation.message,
+        );
         // Send result back to broker
         if (process.send)
           process.send({
@@ -126,7 +128,7 @@ export class AppServer {
           });
         break;
       // System level event to coordinate every application in the
-      // cluster, in order to automatically call between each others
+      // cluster, in order to automatOnixMessagey call between each others
       case OperationType.APP_GREET:
         let apps: string[] = <string[]>operation.message;
         apps = apps.filter((name: string) => this.AppClass.name !== name);
@@ -161,7 +163,7 @@ export class AppServer {
       apps.map(
         (name: string) =>
           new Promise<boolean>(async (resolve, reject) => {
-            const result: boolean = await this.responser.process(<ICall>{
+            const result: boolean = await this.responser.process(<OnixMessage>{
               uuid: '1',
               rpc: `${name}.isAlive`,
               request: {metadata: {}, payload: {}},

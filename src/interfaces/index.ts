@@ -156,11 +156,11 @@ export interface IRequest {
   payload: any;
 }
 /**
- * @interface ICall
+ * @interface OnixMessage
  * @author Jonathan Casarrubias
- * @description ICall inteface for internal (OS Event communication)
+ * @description OnixMessage inteface for internal (OS Event communication)
  */
-export interface ICall {
+export interface OnixMessage {
   uuid: string;
   rpc: string;
   request: IRequest;

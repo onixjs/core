@@ -2,6 +2,8 @@ import {Module} from '../../src/index';
 import {TodoComponent} from './todo.component';
 import {TodoModel} from './todo.model';
 import {TodoService} from './todo.service';
+import {TodoApp} from '../todo.app';
+import {OnixMessage} from '../../src/interfaces';
 /**
  * @class TodoModule
  * @author Jonathan Casarrubias
@@ -13,8 +15,14 @@ import {TodoService} from './todo.service';
   models: [TodoModel],
   services: [TodoService],
   components: [TodoComponent],
-  lifecycle: async (app, metadata, method): Promise<any> => {
-    console.log('I could be doing some authentication here');
+  lifecycle: async (
+    app: TodoApp,
+    message: OnixMessage,
+    method,
+  ): Promise<any> => {
+    // Add Created At
+    const date = new Date();
+    message.request.payload.createdAt = date.toISOString();
     // before call
     const result = await method();
     // after call

@@ -4,7 +4,7 @@ import {
   IAppConfig,
   OperationType,
   IAppOperation,
-  ICall,
+  OnixMessage,
   IRequest,
   OnixConfig,
 } from './interfaces';
@@ -33,7 +33,7 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.7.3';
+    return '1.0.0-alpha.8';
   }
   /**
    * @property server
@@ -179,7 +179,7 @@ export class OnixJS {
       const operation: IAppOperation = {
         uuid: Utils.uuid(),
         type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
-        message: <ICall>{
+        message: <OnixMessage>{
           rpc,
           request,
         },

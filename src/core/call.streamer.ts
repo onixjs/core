@@ -1,5 +1,5 @@
 import {AppFactory} from './app.factory';
-import {AppConstructor, ICall} from '../interfaces';
+import {AppConstructor, OnixMessage} from '../interfaces';
 
 export class CallStreamer {
   /**
@@ -14,7 +14,7 @@ export class CallStreamer {
    * @description This method will register an incoming call in order
    * to send back an answer.
    */
-  register(message: ICall, handler) {
+  register(message: OnixMessage, handler) {
     console.log(
       `Onix callee app ${this.AppClass.name} got remote stream request`,
     );

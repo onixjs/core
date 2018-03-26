@@ -1,4 +1,4 @@
-import {ICall, AppConstructor, ReflectionKeys} from '../interfaces';
+import {OnixMessage, AppConstructor, ReflectionKeys} from '../interfaces';
 import {AppFactory, LifeCycle} from '../core';
 /**
  * @class CallResponse
@@ -26,7 +26,7 @@ export class CallResponser {
    * @description This method will process an incoming call in order
    * to send back an answer.
    */
-  async process(message: ICall): Promise<any> {
+  async process(message: OnixMessage): Promise<any> {
     return new Promise<any>(async (resolve, reject) => {
       console.log(
         `Onix callee app ${this.AppClass.name} got remote call procedure`,
@@ -92,25 +92,25 @@ export class CallResponser {
       // Execute main hook, might be app/system or module level.
       const result = await mainHook(
         this.factory.app,
-        message.request.metadata,
+        message,
         async (): Promise<any> => {
           // If there is a custom component level hook for this call
           // then execute it first.
           if (slaveHook) {
             // Do whatever the developer defined in component config
-            return slaveHook(
-              this.factory.app,
-              message.request.metadata,
-              async (): Promise<any> => {
-                // Ok cool, let me finis. lol (freaking genius)
-                return method
-                  ? method.call(scope, message.request.payload)
-                  : null;
-              },
-            );
+            return await slaveHook(this.factory.app, message, async (): Promise<
+              any
+            > => {
+              // Ok cool, let me finish. lol (freaking genius)
+              return method
+                ? await method.call(scope, message.request.payload)
+                : null;
+            });
           } else {
             // Else just call the requested method now.
-            return method ? method.call(scope, message.request.payload) : null;
+            return method
+              ? await method.call(scope, message.request.payload)
+              : null;
           }
         },
       );

@@ -12,17 +12,23 @@ import {
   IAppOperation,
   Component,
   ClientConnection,
-  ICall,
+  OnixMessage,
   HostBoot,
   Injector,
   Service,
   Inject,
+  DataSource,
+  IDataSource,
+  IModel,
+  Model,
+  Property,
 } from '../src';
 import * as path from 'path';
 import {CallResponser} from '../src/core/call.responser';
 import * as WebSocket from 'uws';
 import {CallStreamer} from '../src/core/call.streamer';
 import {Utils} from '@onixjs/sdk/dist/utils';
+import {Mongoose, Schema, Model as MongooseModel} from 'mongoose';
 const cwd = path.join(process.cwd(), 'dist', 'test');
 // Test AppFactory
 test('Core: AppFactory creates an Application.', async t => {
@@ -415,7 +421,7 @@ test('Core: Connection.', async t => {
       // Create a new Client Connection
       const connection = new ClientConnection(ws, responser, streamer);
       // Handle RPC Call
-      await connection.handle(<ICall>{
+      await connection.handle(<OnixMessage>{
         rpc: 'MyApp.MyModule.MyComponent.testRPC',
         request: <IRequest>{
           metadata: {stream: false, caller: 'tester', token: 'dummytoken'},
@@ -423,7 +429,7 @@ test('Core: Connection.', async t => {
         },
       });
       // Handle Stream
-      await connection.handle(<ICall>{
+      await connection.handle(<OnixMessage>{
         rpc: 'MyApp.MyModule.MyComponent.testStream',
         request: <IRequest>{
           metadata: {stream: true, caller: 'tester', token: 'dummytoken'},
@@ -503,4 +509,74 @@ test('Core: Injector.', async t => {
   });
   t.is(instance.test(), text);
   t.is(instance.test2(), text);
+});
+// Test Injector has, get and set
+test('Core: injector has, get and set.', t => {
+  const injector: Injector = new Injector();
+  const hello = 'world';
+  if (!injector.has(hello)) {
+    injector.set('hello', hello);
+  }
+  t.is(injector.get('hello'), hello);
+});
+// Test Inject Model and Services
+test('Core: Inject Model and Services.', async t => {
+  // Test Reference
+  const criteria: string = 'Hello World';
+  // DataSource
+  @DataSource()
+  class MongooseDatasource implements IDataSource {
+    /**
+     * @property mongoose
+     * @description Mongoose instance reference
+     */
+    private mongoose: Mongoose = new Mongoose();
+    async connect(): Promise<Mongoose> {
+      return this.mongoose.connect(
+        'mongodb://lb-sdk-test:lb-sdk-test@ds153400.mlab.com:53400/heroku_pmkjxjwz',
+      );
+    }
+    async disconnect(): Promise<void> {
+      return this.mongoose.disconnect();
+    }
+    register(name: string, model: IModel, schema: Schema): any {
+      return this.mongoose.model(name, schema);
+    }
+  }
+  // Model
+  @Model({
+    datasource: MongooseDatasource,
+  })
+  class TodoModel implements IModel {
+    _id?: string;
+    @Property(String) text: String;
+  }
+  // Service
+  @Service()
+  class TodoService {
+    test(): string {
+      return criteria;
+    }
+  }
+  // Component
+  class TodoComponent {
+    @Inject.Model(TodoModel) public model: MongooseModel<any>;
+    @Inject.Model(TodoModel) public model2: MongooseModel<any>;
+    @Inject.Service(TodoService) public service: TodoService;
+    @Inject.Service(TodoService) public service2: TodoService;
+  }
+  // Inject Model and Service
+  const injector: Injector = new Injector();
+  const instance: TodoComponent = new TodoComponent();
+  injector.inject(TodoComponent, instance, {
+    components: [],
+    models: [TodoModel],
+    services: [TodoService],
+  });
+  // Test Service
+  t.is(instance.service.test(), criteria);
+  // Test Model
+  const result = await instance.model.create({text: criteria});
+  t.truthy(result._id);
+  t.is(result.text, criteria);
 });

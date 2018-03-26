@@ -1,6 +1,6 @@
 import * as WebSocket from 'uws';
 import {CallResponser} from './call.responser';
-import {ICall, OperationType} from '../index';
+import {OnixMessage, OperationType} from '../index';
 import {CallStreamer} from './call.streamer';
 /**
  * @class ClientConnection
@@ -27,7 +27,7 @@ export class ClientConnection {
    * @param data
    * @description This method will handle
    */
-  async handle(data: ICall) {
+  async handle(data: OnixMessage) {
     //  Remote Procedure Stream
     if (data.request.metadata.stream) {
       this.stream.register(data, chunk =>
