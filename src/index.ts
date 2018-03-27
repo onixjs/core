@@ -33,7 +33,7 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.8';
+    return '1.0.0-alpha.9';
   }
   /**
    * @property server
@@ -131,7 +131,19 @@ export class OnixJS {
     return new Promise<ChildProcess | Error>((resolve, reject) => {
       const parts: string[] = namespace.split('@');
       const name: string = parts.shift() || '';
-      const directory: string = parts.shift() || '';
+      let directory: string = parts.shift() || '';
+      let port: number = 0;
+      let disableNetwork;
+      if (directory.match(/:[\d]{2,5}/)) {
+        const p = directory.split(':');
+        directory = p.shift() || '';
+        port = parseInt(p.shift() || '') || port;
+      }
+      if (directory.match(/:disabled/)) {
+        const p = directory.split(':');
+        directory = p.shift() || '';
+        disableNetwork = true;
+      }
       // Verify for duplicated applications
       if (this._apps[name]) {
         reject(new Error('OnixJS Error: Trying to add duplicated application'));
@@ -155,6 +167,11 @@ export class OnixJS {
         // Must Follow App Operation
         this._apps[name].process.send(<IAppOperation>{
           type: OperationType.APP_CREATE,
+          // Send host level parameters here
+          message: {
+            port,
+            disableNetwork,
+          },
         });
       }
     });
