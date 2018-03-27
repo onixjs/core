@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import {OnixJS, IAppDirectory, IAppConfig} from '../index';
+import {OnixJS, IAppDirectory, IAppConfig, HTTPMethods} from '../index';
 import * as http from 'http';
 import {HTTPServer} from './http.server';
 /**
@@ -33,7 +33,9 @@ export class SchemaProvider {
   start(): void {
     // Setup server
     this.server = new HTTPServer(this.onix.config);
-    this.server.register('/', (req, res) => this.listener(req, res));
+    this.server.register(HTTPMethods.GET, '/', (req, res) =>
+      this.listener(req, res),
+    );
     this.server.start();
     // Indicate the ONIX SERVER is now listening on the given port
     console.log(

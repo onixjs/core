@@ -72,6 +72,9 @@ export class AppServer {
     switch (operation.type) {
       // Event sent from broker when loading a project
       case OperationType.APP_CREATE:
+        // Use Host Level configurations, like custom ports
+        Object.assign(this.config, operation.message);
+        // Setup factory, responser and streamer
         this.factory = new AppFactory(this.AppClass, this.config);
         this.responser = new CallResponser(this.factory, this.AppClass);
         this.streamer = new CallStreamer(this.factory, this.AppClass);

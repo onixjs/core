@@ -280,9 +280,13 @@ export interface BootConfig {
   apps: string[];
   identityProvider?: DomainConfig;
 }
-
-export interface EndpointDirectory {
-  [key: string]: HttpRequestHandler;
+export interface HTTPMethodsDirectory {
+  get: {[key: string]: HttpRequestHandler};
+  post: {[key: string]: HttpRequestHandler};
+  patch: {[key: string]: HttpRequestHandler};
+  put: {[key: string]: HttpRequestHandler};
+  update: {[key: string]: HttpRequestHandler};
+  delete: {[key: string]: HttpRequestHandler};
 }
 export interface HttpRequestHandler {
   (req: http.IncomingMessage, res: http.ServerResponse): void;
@@ -362,4 +366,12 @@ export enum ReflectionKeys {
   /*14*/ INJECTABLE_MODEL,
   /*15*/ INJECTABLE_SERVICE,
   /*16*/ INJECTABLE_DATASOURCE,
+}
+
+export enum HTTPMethods {
+  GET,
+  POST,
+  PATCH,
+  PUT,
+  DELETE,
 }
