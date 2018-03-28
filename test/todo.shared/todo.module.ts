@@ -14,6 +14,7 @@ import {OnixMessage} from '../../src/interfaces';
 @Module({
   models: [TodoModel],
   services: [TodoService],
+  renderers: [],
   components: [TodoComponent],
   lifecycle: async (
     app: TodoApp,

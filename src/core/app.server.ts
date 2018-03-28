@@ -12,6 +12,7 @@ import {ClientConnection} from './index';
 import {CallStreamer} from './call.streamer';
 import {HTTPServer} from './http.server';
 import * as WebSocket from 'uws';
+import {AppNotifier} from './app.notifier';
 /**
  * @function AppServer
  * @author Jonathan Casarrubias
@@ -37,6 +38,12 @@ export class AppServer {
    * @description Current process factory reference
    */
   private factory: AppFactory;
+  /**
+   * @property notifier
+   * @description The notifier is an event emmiter
+   * that will notify events accross an app scope.
+   */
+  public notifier: AppNotifier = new AppNotifier();
   /**
    * @property streamer
    * @description Current process call streamer reference
@@ -85,7 +92,12 @@ export class AppServer {
           this.http = new HTTPServer(this.config);
         }
         // Setup factory, responser and streamer
-        this.factory = new AppFactory(this.AppClass, this.config, this.http);
+        this.factory = new AppFactory(
+          this.AppClass,
+          this.config,
+          this.notifier,
+          this.http,
+        );
         this.responser = new CallResponser(this.factory, this.AppClass);
         this.streamer = new CallStreamer(this.factory, this.AppClass);
         break;
@@ -108,6 +120,12 @@ export class AppServer {
                   type: OperationType.APP_PING_RESPONSE,
                 });
                 new ClientConnection(ws, this.responser, this.streamer);
+                // Todo will need to register all the UUIDs
+                // And pass it to clean listeners.
+                this.notifier.emit('notify:new-ws-connection', ws);
+                ws.onclose = () => {
+                  this.notifier.emit('notify:closed-ws-connection', ws);
+                };
               });
             }
             resolve();

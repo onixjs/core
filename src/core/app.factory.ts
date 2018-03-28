@@ -12,7 +12,7 @@ import {
 } from '../interfaces';
 import {Injector} from '../core';
 import {getObjectMethods} from '../utils';
-import {HTTPServer} from '..';
+import {HTTPServer, AppNotifier} from '..';
 /**
  * @class AppFactory
  * @author Jonathan Casarrubias
@@ -36,6 +36,8 @@ export class AppFactory {
    * @constructor
    * @param Class
    * @param config
+   * @param notifier
+   * @param http
    * @description this construcvtor will call for setupApp and setupModules method.
    * once these processes finish it will emit an event to the parent process to
    * inform this application has been created.
@@ -43,6 +45,7 @@ export class AppFactory {
   constructor(
     private Class: AppConstructor,
     private config: IAppConfig,
+    private notifier: AppNotifier,
     private http?: HTTPServer,
   ) {
     // First of all create a new class instance
@@ -111,35 +114,34 @@ export class AppFactory {
         this.scopes[Module.name].inject(
           Component,
           moduleInstance[Component.name],
-          config,
+          Object.assign(config, {notifier: this.notifier}),
         );
-        // Register Component Views
-        getObjectMethods(moduleInstance[Component.name]).forEach(
-          (method: string) => {
-            // Verify the property has view config
-            const viewConfig: IViewConfig = Reflect.getMetadata(
-              ReflectionKeys.ROUTE_VIEW,
-              moduleInstance[Component.name],
-              method,
-            );
-            // Validate we got a viewConfig
-            if (viewConfig && this.http && !this.config.disableNetwork) {
-              this.http.register(
-                viewConfig.method || HTTPMethods.GET,
-                viewConfig.endpoint,
-                async (req, data) => {
-                  // When this endpoint is executed:
-                  const result = await moduleInstance[Component.name][method](
-                    req,
-                    data,
-                  );
-                  // Do we want to do something with this view? (TODO: Think about it)
-                  return result;
-                },
-                viewConfig.file,
-              );
-            }
+        // Now setup any registered view
+        this.setupViews(moduleInstance[Component.name]);
+      }
+    });
+  }
+  setupViews(instance): void {
+    // Register Component Views
+    getObjectMethods(instance).forEach((method: string) => {
+      // Verify the property has view config
+      const viewConfig: IViewConfig = Reflect.getMetadata(
+        ReflectionKeys.ROUTE_VIEW,
+        instance,
+        method,
+      );
+      // Validate we got a viewConfig
+      if (viewConfig && this.http && !this.config.disableNetwork) {
+        this.http.register(
+          viewConfig.method || HTTPMethods.GET,
+          viewConfig.endpoint,
+          async (req, data) => {
+            // When this endpoint is executed:
+            const result = await instance[method](req, data);
+            // Do we want to do something with this view? (TODO: Think about it)
+            return result;
           },
+          viewConfig.file,
         );
       }
     });

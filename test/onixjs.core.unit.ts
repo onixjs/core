@@ -25,7 +25,11 @@ import {
   View,
   OnixHTTPRequest,
   ErrorResponse,
+  IViewRenderer,
+  Directory,
+  ViewRenderer,
 } from '../src';
+import {AppNotifier} from '../src/core/app.notifier';
 import {ClientConnection} from '../src/core/connection';
 import {AppServer} from '../src/core/app.server';
 import {HTTPServer} from '../src/core/http.server';
@@ -35,6 +39,7 @@ import {HostBoot} from '../src/core/host.boot';
 import * as path from 'path';
 import {CallResponser} from '../src/core/call.responser';
 import * as WebSocket from 'uws';
+import * as dot from 'dot';
 import {CallStreamer} from '../src/core/call.streamer';
 import {NodeJS} from '@onixjs/sdk/dist/core/node.adapters';
 import {Utils} from '@onixjs/sdk/dist/utils';
@@ -43,7 +48,11 @@ const cwd = path.join(process.cwd(), 'dist', 'test');
 // Test AppFactory
 test('Core: AppFactory creates an Application.', async t => {
   class MyApp extends Application {}
-  const instance: AppFactory = new AppFactory(MyApp, {modules: []});
+  const instance: AppFactory = new AppFactory(
+    MyApp,
+    {modules: []},
+    new AppNotifier(),
+  );
   t.truthy(instance.app.start);
   t.truthy(instance.app.stop);
   t.truthy(instance.app.isAlive);
@@ -55,7 +64,7 @@ test('Core: AppFactory fails on installing invalid module.', async t => {
     new Promise(() => {
       class MyModule {}
       class MyApp extends Application {}
-      new AppFactory(MyApp, {modules: [MyModule]});
+      new AppFactory(MyApp, {modules: [MyModule]}, new AppNotifier());
     }),
   );
   t.is(
@@ -116,12 +125,17 @@ test('Core: OnixJS schema builder.', async t => {
   }
   @Module({
     models: [],
+    renderers: [],
     services: [],
     components: [MyComponent],
   })
   class MyModule {}
   class MyApp extends Application {}
-  const instance: AppFactory = new AppFactory(MyApp, {modules: [MyModule]});
+  const instance: AppFactory = new AppFactory(
+    MyApp,
+    {modules: [MyModule]},
+    new AppNotifier(),
+  );
   const schema = instance.schema();
   t.truthy(schema.modules.MyModule);
 });
@@ -135,15 +149,20 @@ test('Core: CallResponser invalid call.', async t => {
   }
   @Module({
     models: [],
+    renderers: [],
     services: [],
     components: [MyComponent],
   })
   class MyModule {}
   class MyApp extends Application {}
-  const factory: AppFactory = new AppFactory(MyApp, {
-    disableNetwork: true,
-    modules: [MyModule],
-  });
+  const factory: AppFactory = new AppFactory(
+    MyApp,
+    {
+      disableNetwork: true,
+      modules: [MyModule],
+    },
+    new AppNotifier(),
+  );
   const responser: CallResponser = new CallResponser(factory, MyApp);
   const error = await t.throws(
     responser.process({
@@ -167,15 +186,20 @@ test('Core: CallResponser invalid call.', async t => {
   }
   @Module({
     models: [],
+    renderers: [],
     services: [],
     components: [MyComponent],
   })
   class MyModule {}
   class MyApp extends Application {}
-  const factory: AppFactory = new AppFactory(MyApp, {
-    disableNetwork: true,
-    modules: [MyModule],
-  });
+  const factory: AppFactory = new AppFactory(
+    MyApp,
+    {
+      disableNetwork: true,
+      modules: [MyModule],
+    },
+    new AppNotifier(),
+  );
   const responser: CallResponser = new CallResponser(factory, MyApp);
   const error = await t.throws(
     responser.process({
@@ -199,15 +223,20 @@ test('Core: CallResponser invalid call.', async t => {
   }
   @Module({
     models: [],
+    renderers: [],
     services: [],
     components: [MyComponent],
   })
   class MyModule {}
   class MyApp extends Application {}
-  const factory: AppFactory = new AppFactory(MyApp, {
-    disableNetwork: true,
-    modules: [MyModule],
-  });
+  const factory: AppFactory = new AppFactory(
+    MyApp,
+    {
+      disableNetwork: true,
+      modules: [MyModule],
+    },
+    new AppNotifier(),
+  );
   const responser: CallResponser = new CallResponser(factory, MyApp);
   const error = await t.throws(
     responser.process({
@@ -237,15 +266,20 @@ test('Core: CallResponser Hooks.', async t => {
   }
   @Module({
     models: [],
+    renderers: [],
     services: [],
     components: [MyComponent],
   })
   class MyModule {}
   class MyApp extends Application {}
-  const factory: AppFactory = new AppFactory(MyApp, {
-    disableNetwork: true,
-    modules: [MyModule],
-  });
+  const factory: AppFactory = new AppFactory(
+    MyApp,
+    {
+      disableNetwork: true,
+      modules: [MyModule],
+    },
+    new AppNotifier(),
+  );
   const responser: CallResponser = new CallResponser(factory, MyApp);
   const result = await responser.process({
     uuid: '1',
@@ -278,15 +312,20 @@ test('Core: CallResponser Hooks.', async t => {
   }
   @Module({
     models: [],
+    renderers: [],
     services: [],
     components: [MyComponent],
   })
   class MyModule {}
   class MyApp extends Application {}
-  const factory: AppFactory = new AppFactory(MyApp, {
-    disableNetwork: true,
-    modules: [MyModule],
-  });
+  const factory: AppFactory = new AppFactory(
+    MyApp,
+    {
+      disableNetwork: true,
+      modules: [MyModule],
+    },
+    new AppNotifier(),
+  );
   const streamer: CallStreamer = new CallStreamer(factory, MyApp);
   streamer.register(
     {
@@ -308,15 +347,20 @@ test('Core: CallStreamer invalid call.', async t => {
   class MyComponent {}
   @Module({
     models: [],
+    renderers: [],
     services: [],
     components: [MyComponent],
   })
   class MyModule {}
   class MyApp extends Application {}
-  const factory: AppFactory = new AppFactory(MyApp, {
-    disableNetwork: true,
-    modules: [MyModule],
-  });
+  const factory: AppFactory = new AppFactory(
+    MyApp,
+    {
+      disableNetwork: true,
+      modules: [MyModule],
+    },
+    new AppNotifier(),
+  );
   const streamer: CallStreamer = new CallStreamer(factory, MyApp);
   streamer.register(
     {
@@ -375,6 +419,7 @@ test('Core: Application start and stop.', async t => {
   }
   @Module({
     models: [],
+    renderers: [],
     services: [],
     components: [MyComponent],
   })
@@ -410,15 +455,20 @@ test('Core: Connection.', async t => {
   }
   @Module({
     models: [],
+    renderers: [],
     services: [],
     components: [MyComponent],
   })
   class MyModule {}
   class MyApp extends Application {}
-  const factory: AppFactory = new AppFactory(MyApp, {
-    disableNetwork: true,
-    modules: [MyModule],
-  });
+  const factory: AppFactory = new AppFactory(
+    MyApp,
+    {
+      disableNetwork: true,
+      modules: [MyModule],
+    },
+    new AppNotifier(),
+  );
   // Create websocket server
   const server = new WebSocket.Server({host: '127.0.0.1', port: 9090}, () => {
     const responser = new CallResponser(factory, MyApp);
@@ -514,13 +564,14 @@ test('Core: Injector.', async t => {
   const instance: MyComponent = new MyComponent();
   injector.inject(MyComponent, instance, {
     models: [],
+    renderers: [],
     services: [MyService],
     components: [],
   });
   t.is(instance.test(), text);
   t.is(instance.test2(), text);
 });
-/* Test Injector has, get and set
+//Test Injector has, get and set
 test('Core: injector has, get and set.', t => {
   const injector: Injector = new Injector();
   const hello = 'world';
@@ -528,7 +579,7 @@ test('Core: injector has, get and set.', t => {
     injector.set('hello', hello);
   }
   t.is(injector.get('hello'), hello);
-});*/
+});
 // Test Inject Model and Services
 test('Core: Inject Model and Services.', async t => {
   // Test Reference
@@ -561,6 +612,14 @@ test('Core: Inject Model and Services.', async t => {
     _id?: string;
     @Property(String) text: String;
   }
+  // Model
+  @Model({
+    datasource: MongooseDatasource,
+  })
+  class Todo2Model implements IModel {
+    _id?: string;
+    @Property(String) text: String;
+  }
   // Service
   @Service()
   class TodoService {
@@ -571,7 +630,8 @@ test('Core: Inject Model and Services.', async t => {
   // Component
   class TodoComponent {
     @Inject.Model(TodoModel) public model: MongooseModel<any>;
-    @Inject.Model(TodoModel) public model2: MongooseModel<any>;
+    @Inject.Model(Todo2Model) public model2: MongooseModel<any>;
+    @Inject.Model(Todo2Model) public model3: MongooseModel<any>;
     @Inject.Service(TodoService) public service: TodoService;
     @Inject.Service(TodoService) public service2: TodoService;
   }
@@ -580,7 +640,8 @@ test('Core: Inject Model and Services.', async t => {
   const instance: TodoComponent = new TodoComponent();
   injector.inject(TodoComponent, instance, {
     components: [],
-    models: [TodoModel],
+    renderers: [],
+    models: [TodoModel, Todo2Model],
     services: [TodoService],
   });
   // Test Service
@@ -589,6 +650,59 @@ test('Core: Inject Model and Services.', async t => {
   const result = await instance.model.create({text: criteria});
   t.truthy(result._id);
   t.is(result.text, criteria);
+});
+// Test Inject Throws Uninstalled Injectable
+test('Core: Inject Throws Uninstalled Injectable.', async t => {
+  // DataSource
+  @DataSource()
+  class MongooseDatasource implements IDataSource {
+    /**
+     * @property mongoose
+     * @description Mongoose instance reference
+     **/
+    private mongoose: Mongoose = new Mongoose();
+    async connect(): Promise<Mongoose> {
+      return this.mongoose.connect(
+        'mongodb://lb-sdk-test:lb-sdk-test@ds153400.mlab.com:53400/heroku_pmkjxjwz',
+      );
+    }
+    async disconnect(): Promise<void> {
+      return this.mongoose.disconnect();
+    }
+    register(name: string, model: IModel, schema: Schema): any {
+      return this.mongoose.model(name, schema);
+    }
+  }
+  // Model
+  @Model({
+    datasource: MongooseDatasource,
+  })
+  class TodoModel implements IModel {
+    _id?: string;
+    @Property(String) text: String;
+  }
+  // Component
+  class TodoComponent {
+    @Inject.Model(TodoModel) public model: MongooseModel<any>;
+  }
+  // Inject Model and Service
+  const injector: Injector = new Injector();
+  const instance: TodoComponent = new TodoComponent();
+  const error = await t.throws(
+    new Promise(() => {
+      injector.inject(TodoComponent, instance, {
+        components: [],
+        renderers: [],
+        models: [],
+        services: [],
+      });
+    }),
+  );
+  // Test Service
+  t.is(
+    error.message,
+    'ONIXJS CORE: Unable to inject an unregisted class "TodoModel", please install it within the @Module "TodoComponent" configuration',
+  );
 });
 // Test Main Life Cycle
 test('Core: main lifecycle.', async t => {
@@ -774,7 +888,6 @@ test('Core: HTTP Invalid 443.', async t => {
     'ONIX HTTP SERVER: SSL configuration is invalid, ssl key or cert missing',
   );
 });
-
 //Test Component View
 test('Core: Component View.', async t => {
   interface Result {
@@ -793,6 +906,7 @@ test('Core: Component View.', async t => {
   // Declare Module
   @Module({
     models: [],
+    renderers: [],
     services: [],
     components: [StaticComponent],
   })
@@ -809,6 +923,7 @@ test('Core: Component View.', async t => {
     {
       modules: [StaticModule],
     },
+    new AppNotifier(),
     http,
   );
   // Start HTTP Server
@@ -822,4 +937,103 @@ test('Core: Component View.', async t => {
   http.stop();
   // Test Service
   t.is(result.hello, 'World');
+});
+//Test Renderer
+test('Core: View Renderer.', async t => {
+  interface Result {
+    HELLO: string;
+  }
+  // Declare renderer
+  @ViewRenderer
+  class MyRenderer implements IViewRenderer {
+    process(view: string, args: Directory): string {
+      // Use Any JS Template Engine Here
+      // This test uses doT: https://github.com/olado/doT/
+      return dot.template(view, undefined, args)();
+    }
+  }
+  // Component
+  class DynamicComponent {
+    // Inject Renderer
+    @Inject.Renderer(MyRenderer) renderer: MyRenderer;
+    // Declare View
+    @View({
+      endpoint: '/my-dynamic',
+      file: 'test/dynamic.json',
+    })
+    async testRenderer(req: OnixHTTPRequest, buffer: Buffer): Promise<string> {
+      return this.renderer.process(buffer.toString(), {
+        key: 'HELLO',
+        value: 'WORLD',
+      });
+    }
+  }
+  // Declare Module
+  @Module({
+    models: [],
+    renderers: [MyRenderer, MyRenderer],
+    services: [],
+    components: [DynamicComponent],
+  })
+  class DynamicModule {}
+  // Declare Application
+  class MyApp extends Application {}
+  // Declare HTTP Server
+  const http: HTTPServer = new HTTPServer({
+    port: 6050,
+  });
+  // Start App Factory
+  new AppFactory(
+    MyApp,
+    {
+      modules: [DynamicModule],
+    },
+    new AppNotifier(),
+    http,
+  );
+  // Start HTTP Server
+  http.start();
+  // Create HTTP Client
+  const client: NodeJS.HTTP = new NodeJS.HTTP();
+  // Call the decorated JSON
+  const result: Result = <Result>await client.get(
+    'http://127.0.0.1:6050/my-dynamic',
+  );
+  http.stop();
+  // Test Service
+  t.is(result.HELLO, 'WORLD');
+});
+//Test Notifier
+test('Core: Notifier.', async t => {
+  // Set test event
+  const event: string = 'notifier:test';
+  // Component
+  class NotifierComponent {
+    // Inject Renderer
+    @Inject.Notifier() notifier: AppNotifier;
+    // Test Notifier Event
+    test() {
+      return new Promise((resolve, reject) =>
+        this.notifier.on(event, r => resolve(r)),
+      );
+    }
+  }
+  // Create Notifier
+  const notifier: AppNotifier = new AppNotifier();
+  // Create NotifierComponent instance
+  const instance: NotifierComponent = new NotifierComponent();
+  // Start App Factory
+  const injector: Injector = new Injector();
+  // Inject Notifier
+  injector.inject(NotifierComponent, instance, {
+    renderers: [],
+    components: [],
+    services: [],
+    models: [],
+    notifier,
+  });
+  // Test Notifier Event
+  instance.test().then(r => t.true(r), e => console.log(e));
+  // Send test event
+  notifier.emit(event, true);
 });

@@ -1,4 +1,9 @@
-import {ReflectionKeys, IViewConfig, IViewHandler} from '../index';
+import {
+  ReflectionKeys,
+  IViewConfig,
+  IViewHandler,
+  IViewRenderer,
+} from '../index';
 /**
  * @function View
  * @author Jonathan Casarrubias
@@ -17,4 +22,18 @@ export function View(config: IViewConfig) {
     // Define View metadata
     Reflect.defineMetadata(ReflectionKeys.ROUTE_VIEW, config, target, name);
   };
+}
+/**
+ * @function ViewRenderer
+ * @author Jonathan Casarrubias
+ * @license MIT
+ * @description This decorator will request.
+ */
+export function ViewRenderer(renderer: new () => IViewRenderer) {
+  // Define View metadata
+  Reflect.defineMetadata(
+    ReflectionKeys.INJECTABLE_RENDERER,
+    true,
+    renderer.prototype,
+  );
 }

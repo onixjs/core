@@ -10,6 +10,7 @@ import {BobComponent} from './bob.component';
 @Module({
   models: [],
   services: [],
+  renderers: [],
   components: [BobComponent],
 })
 export class BobModule {}

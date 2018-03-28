@@ -8,7 +8,6 @@ import {MicroService, Application} from '../../src/index';
  * and for testing purposes. It imports a TodoModule.
  */
 @MicroService({
-  host: '127.0.0.1',
   port: 8079,
   modules: [TodoModule],
 })

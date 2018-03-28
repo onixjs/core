@@ -332,13 +332,12 @@ export class HTTPServer {
       let data: string = '';
       req.on('data', d => {
         data += d;
-        /* Oops way to large body, kill this guy now
-        Temporally disabled since it is not currently public feature
+        //Oops way to large body, kill this guy now
         if (data.length > 1e6) {
           data = '';
           res.writeHead(413, {'Content-Type': 'text/plain'}).end();
           req.connection.destroy();
-        }*/
+        }
       });
       req.on('end', function() {
         resolve(data);
