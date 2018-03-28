@@ -1,5 +1,5 @@
 import {test} from 'ava';
-import {AppServer} from '../src/core/app.server';
+//import {AppServer} from '../src/core/app.server';
 import {Application} from '../src/core/app';
 import {AppFactory} from '../src/core/app.factory';
 import {
@@ -11,10 +11,7 @@ import {
   OperationType,
   IAppOperation,
   Component,
-  ClientConnection,
   OnixMessage,
-  HostBoot,
-  Injector,
   Service,
   Inject,
   DataSource,
@@ -22,12 +19,19 @@ import {
   IModel,
   Model,
   Property,
-  LifeCycle,
   IApp,
   IModuleDirectory,
-  HTTPServer,
   HTTPMethods,
+  View,
+  OnixHTTPRequest,
+  ErrorResponse,
 } from '../src';
+import {ClientConnection} from '../src/core/connection';
+import {AppServer} from '../src/core/app.server';
+import {HTTPServer} from '../src/core/http.server';
+import {LifeCycle} from '../src/core/lifecycle';
+import {Injector} from '../src/core/injector';
+import {HostBoot} from '../src/core/host.boot';
 import * as path from 'path';
 import {CallResponser} from '../src/core/call.responser';
 import * as WebSocket from 'uws';
@@ -328,7 +332,7 @@ test('Core: CallStreamer invalid call.', async t => {
     },
   );
 });
-// Test AppServer invalid operation
+//Test AppServer invalid operation
 test('Core: AppServer invalid operation.', async t => {
   class MyApp extends Application {}
   const appServer: AppServer = new AppServer(MyApp, {
@@ -516,7 +520,7 @@ test('Core: Injector.', async t => {
   t.is(instance.test(), text);
   t.is(instance.test2(), text);
 });
-// Test Injector has, get and set
+/* Test Injector has, get and set
 test('Core: injector has, get and set.', t => {
   const injector: Injector = new Injector();
   const hello = 'world';
@@ -524,7 +528,7 @@ test('Core: injector has, get and set.', t => {
     injector.set('hello', hello);
   }
   t.is(injector.get('hello'), hello);
-});
+});*/
 // Test Inject Model and Services
 test('Core: Inject Model and Services.', async t => {
   // Test Reference
@@ -535,7 +539,7 @@ test('Core: Inject Model and Services.', async t => {
     /**
      * @property mongoose
      * @description Mongoose instance reference
-     */
+     **/
     private mongoose: Mongoose = new Mongoose();
     async connect(): Promise<Mongoose> {
       return this.mongoose.connect(
@@ -714,4 +718,108 @@ test('Core: HTTP WildCard.', async t => {
   );
   server.stop();
   t.is(getResult.hello, result.hello);
+});
+// Test HTTP Static
+test('Core: HTTP Static.', async t => {
+  interface Result {
+    hello: string;
+  }
+  const config = {
+    host: '127.0.0.1',
+    port: 8062,
+    cwd: path.join(process.cwd(), 'test'),
+  };
+  const server: HTTPServer = new HTTPServer(config);
+  server.start();
+  // Use SDK Client to make calls
+  const client: NodeJS.HTTP = new NodeJS.HTTP();
+  const getResult: Result = <Result>await client.get(
+    'http://127.0.0.1:8062/static.json',
+  );
+  server.stop();
+  t.is(getResult.hello, 'World');
+});
+// Test HTTP NotExisting Static
+test('Core: HTTP NotExisting Static.', async t => {
+  const config = {
+    host: '127.0.0.1',
+    port: 8063,
+    cwd: path.join(process.cwd(), 'test'),
+  };
+  const server: HTTPServer = new HTTPServer(config);
+  server.start();
+  // Use SDK Client to make calls
+  const client: NodeJS.HTTP = new NodeJS.HTTP();
+  const getError: ErrorResponse = <ErrorResponse>await client.get(
+    'http://127.0.0.1:8062/static-notexistent.json',
+  );
+  server.stop();
+  t.is(getError.code, 404);
+});
+// Test HTTP Invalid 443
+test('Core: HTTP Invalid 443.', async t => {
+  const config = {
+    host: '127.0.0.1',
+    port: 443,
+  };
+  const server: HTTPServer = new HTTPServer(config);
+  // Use SDK Client to make calls
+  const error = await t.throws(
+    new Promise(() => {
+      server.start();
+    }),
+  );
+  t.is(
+    error.message,
+    'ONIX HTTP SERVER: SSL configuration is invalid, ssl key or cert missing',
+  );
+});
+
+//Test Component View
+test('Core: Component View.', async t => {
+  interface Result {
+    hello: string;
+  }
+  // Component
+  class StaticComponent {
+    @View({
+      endpoint: '/my-static',
+      file: 'test/static.json',
+    })
+    async test(req: OnixHTTPRequest, buffer: Buffer): Promise<string> {
+      return buffer.toString();
+    }
+  }
+  // Declare Module
+  @Module({
+    models: [],
+    services: [],
+    components: [StaticComponent],
+  })
+  class StaticModule {}
+  // Declare Application
+  class MyApp extends Application {}
+  // Declare HTTP Server
+  const http: HTTPServer = new HTTPServer({
+    port: 6060,
+  });
+  // Start App Factory
+  new AppFactory(
+    MyApp,
+    {
+      modules: [StaticModule],
+    },
+    http,
+  );
+  // Start HTTP Server
+  http.start();
+  // Create HTTP Client
+  const client: NodeJS.HTTP = new NodeJS.HTTP();
+  // Call the decorated JSON
+  const result: Result = <Result>await client.get(
+    'http://127.0.0.1:6060/my-static',
+  );
+  http.stop();
+  // Test Service
+  t.is(result.hello, 'World');
 });

@@ -7,9 +7,12 @@ import {
   OperationType,
   Constructor,
   AppConstructor,
+  HTTPMethods,
+  IViewConfig,
 } from '../interfaces';
 import {Injector} from '../core';
 import {getObjectMethods} from '../utils';
+import {HTTPServer} from '..';
 /**
  * @class AppFactory
  * @author Jonathan Casarrubias
@@ -37,7 +40,11 @@ export class AppFactory {
    * once these processes finish it will emit an event to the parent process to
    * inform this application has been created.
    */
-  constructor(private Class: AppConstructor, private config: IAppConfig) {
+  constructor(
+    private Class: AppConstructor,
+    private config: IAppConfig,
+    private http?: HTTPServer,
+  ) {
     // First of all create a new class instance
     if (!this.app) this.app = new this.Class();
     // Now setup its modules
@@ -105,6 +112,34 @@ export class AppFactory {
           Component,
           moduleInstance[Component.name],
           config,
+        );
+        // Register Component Views
+        getObjectMethods(moduleInstance[Component.name]).forEach(
+          (method: string) => {
+            // Verify the property has view config
+            const viewConfig: IViewConfig = Reflect.getMetadata(
+              ReflectionKeys.ROUTE_VIEW,
+              moduleInstance[Component.name],
+              method,
+            );
+            // Validate we got a viewConfig
+            if (viewConfig && this.http && !this.config.disableNetwork) {
+              this.http.register(
+                viewConfig.method || HTTPMethods.GET,
+                viewConfig.endpoint,
+                async (req, data) => {
+                  // When this endpoint is executed:
+                  const result = await moduleInstance[Component.name][method](
+                    req,
+                    data,
+                  );
+                  // Do we want to do something with this view? (TODO: Think about it)
+                  return result;
+                },
+                viewConfig.file,
+              );
+            }
+          },
         );
       }
     });
