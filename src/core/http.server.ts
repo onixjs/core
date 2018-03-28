@@ -4,9 +4,15 @@ import {
   HttpRequestHandler,
   HTTPMethodsDirectory,
   HTTPMethods,
+  IView,
+  IViewDirectory,
+  IViewHandler,
+  OnixHTTPRequest,
+  ErrorResponse,
 } from '../interfaces';
 import * as fs from 'fs';
 import * as url from 'url';
+import * as path from 'path';
 import * as http from 'http';
 import * as https from 'https';
 import * as querystring from 'querystring';
@@ -26,6 +32,12 @@ export class HTTPServer {
    * @description http server
    */
   private server: http.Server | https.Server;
+  /**
+   * @property views
+   * @description Will contain a directory of handlers
+   * for specific http request calls.
+   */
+  private views: IViewDirectory = {};
   /**
    * @property endpoints
    * @description Will contain a directory of handlers
@@ -80,7 +92,7 @@ export class HTTPServer {
                   this.config.ssl ? this.config.ssl.cert : './ssl/file.cert',
                 ),
               },
-              (req: http.IncomingMessage, res: http.ServerResponse) =>
+              (req: OnixHTTPRequest, res: http.ServerResponse) =>
                 this.listener(req, res),
             )
             .listen(this.config.port)
@@ -93,11 +105,15 @@ export class HTTPServer {
                 'GET,PUT,POST,DELETE',
               );
               res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-              await this.listener(req, res);
+              await this.listener(<OnixHTTPRequest>req, res);
             })
             .listen(this.config.port);
     // Indicate the ONIX SERVER is now listening on the given port
     console.log(`ONIX SERVER: Listening on port ${this.config.port}`);
+  }
+
+  getNative(): http.Server | https.Server {
+    return this.server;
   }
 
   stop(): void {
@@ -112,26 +128,136 @@ export class HTTPServer {
    *
    * Example, parse POST or Query.
    */
-  private async listener(req: http.IncomingMessage, res: http.ServerResponse) {
+  private async listener(req: OnixHTTPRequest, res: http.ServerResponse) {
+    if (req.url && req.method) {
+      if (req.method === 'POST') {
+        req.post = await this.processPost(req, res);
+        req.post = Utils.IsJsonString(req.post)
+          ? JSON.parse(<string>req.post)
+          : req.post;
+      }
+      // Get Query String
+      req.query = querystring.parse(url.parse(req.url).query || '');
+      // Verify This is not a static file
+      const parsedUrl = url.parse(req.url);
+      // Create request context
+      const ctx: {
+        pathname: string;
+        ext?: string;
+      } = {
+        pathname: parsedUrl.pathname || '',
+      };
+      ctx.ext = path.parse(ctx.pathname).ext;
+      // Is this a static or logical endpoint
+      if (
+        // Is there any view registered for this pathname?
+        this.views[ctx.pathname] ||
+        // Maybe this is an actual filename, verify for an extension.
+        (ctx.ext &&
+          // If there is an extension
+          (ctx.ext !== '' ||
+            // Or if there is a directory with this name
+            fs
+              .statSync(path.join(this.config.cwd || __dirname, ctx.pathname))
+              .isDirectory()))
+      ) {
+        this.static(ctx, req, res);
+      } else {
+        // Else treat it as an endpoint (Function Handler)
+        await this.endpoint(ctx, req, res);
+      }
+    }
+  }
+  /**
+   * @method static
+   * @param ctx
+   * @param req
+   * @param res
+   * Will server static files
+   */
+  private static(ctx, req: OnixHTTPRequest, res: http.ServerResponse) {
+    if (req.url && req.method) {
+      // We need to form the real pathname, lets figure out how
+      let pathname: string = '';
+      // If there are any views registered
+      if (this.views[ctx.pathname]) {
+        pathname = path.join(
+          this.config.cwd || process.cwd(),
+          this.views[ctx.pathname].file,
+        );
+      } else {
+        // Then use the actual URL path name
+        pathname = path.join(this.config.cwd || process.cwd(), ctx.pathname);
+      }
+      console.log('LOADING PATHNAME: ', pathname);
+      // maps file extention to MIME typere
+      const map = {
+        '.ico': 'image/x-icon',
+        '.html': 'text/html',
+        '.js': 'text/javascript',
+        '.json': 'application/json',
+        '.css': 'text/css',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.wav': 'audio/wav',
+        '.mp3': 'audio/mpeg',
+        '.svg': 'image/svg+xml',
+        '.pdf': 'application/pdf',
+        '.doc': 'application/msword',
+      };
+      fs.exists(pathname, exist => {
+        if (!exist) {
+          // if the file is not found, return 404
+          res.statusCode = 404;
+          res.end(
+            JSON.stringify(<ErrorResponse>{
+              code: res.statusCode,
+              message: `Unable to find ${pathname}`,
+            }),
+          );
+          return;
+        }
+        // if is a directory search for index file matching the extention
+        if (fs.statSync(pathname).isDirectory()) pathname += '/index' + ctx.ext;
+        // read file from file system
+        fs.readFile(pathname, (err, data) => {
+          if (err) {
+            res.statusCode = 500;
+            res.end(`Error getting the file: ${err}.`);
+          } else {
+            res.setHeader('Content-type', map[ctx.ext] || 'text/plain');
+            // Potentially get cookies and headers
+            if (this.views[ctx.pathname]) {
+              this.views[ctx.pathname]
+                .handler(req, data)
+                .then(result => res.end(result), e => res.end(e));
+            } else {
+              // if the file is found, set Content-type and send data
+              res.setHeader('Content-type', map[ctx.ext] || 'text/plain');
+              res.end(data);
+            }
+          }
+        });
+      });
+    }
+  }
+  /**
+   * @method endpoint
+   * @param ctx
+   * @param req
+   * @param res
+   * @description This method will treat a request as an endpoint request
+   * It will handle post or query data and pass it parsed as request.
+   */
+  private async endpoint(ctx, req: OnixHTTPRequest, res: http.ServerResponse) {
     if (req.url && req.method) {
       // Get directory of endpoints for this method
       const directory = this.endpoints[req.method.toLowerCase()];
       // Verify we actually got a directory
       if (directory) {
-        // TODO Create HTTP Request that extends from http.IncomingMessage
-        if (req.method === 'POST') {
-          req['post'] = await this.processPost(req, res);
-          req['post'] = Utils.IsJsonString(req['post'])
-            ? JSON.parse(req['post'])
-            : req['post'];
-        }
-        // Get Query String
-        req['query'] = querystring.parse(url.parse(req.url).query || '');
-        // Define Endpoint
-        const endpoint: string | undefined = url.parse(req.url).pathname;
         //const query: string | null = url.parse(req.url).query;
-        if (endpoint && directory[endpoint]) {
-          directory[endpoint](req, res);
+        if (ctx.pathname && directory[ctx.pathname]) {
+          directory[ctx.pathname](req, res);
         } else if (directory['*']) {
           directory['*'](req, res);
         } else {
@@ -139,7 +265,9 @@ export class HTTPServer {
             JSON.stringify({
               error: {
                 code: 404,
-                message: `Unable to process endpoint, missing listener ${endpoint}`,
+                message: `Unable to process endpoint, missing listener ${
+                  ctx.pathname
+                }`,
               },
             }),
           );
@@ -163,25 +291,33 @@ export class HTTPServer {
       | HTTPMethods.PATCH
       | HTTPMethods.DELETE,
     endpoint: string,
-    handler: HttpRequestHandler,
+    handler: HttpRequestHandler | IViewHandler,
+    file?: string,
   ): void {
-    switch (method) {
-      // Using enum instead of string to make this a strict feature
-      case HTTPMethods.GET:
-        this.endpoints.get[endpoint] = handler;
-        break;
-      case HTTPMethods.POST:
-        this.endpoints.post[endpoint] = handler;
-        break;
-      case HTTPMethods.PUT:
-        this.endpoints.put[endpoint] = handler;
-        break;
-      case HTTPMethods.PATCH:
-        this.endpoints.patch[endpoint] = handler;
-        break;
-      case HTTPMethods.DELETE:
-        this.endpoints.delete[endpoint] = handler;
-        break;
+    if (file) {
+      this.views[endpoint] = <IView>{
+        file,
+        handler,
+      };
+    } else {
+      switch (method) {
+        // Using enum instead of string to make this a strict feature
+        case HTTPMethods.GET:
+          this.endpoints.get[endpoint] = <HttpRequestHandler>handler;
+          break;
+        case HTTPMethods.POST:
+          this.endpoints.post[endpoint] = <HttpRequestHandler>handler;
+          break;
+        case HTTPMethods.PUT:
+          this.endpoints.put[endpoint] = <HttpRequestHandler>handler;
+          break;
+        case HTTPMethods.PATCH:
+          this.endpoints.patch[endpoint] = <HttpRequestHandler>handler;
+          break;
+        case HTTPMethods.DELETE:
+          this.endpoints.delete[endpoint] = <HttpRequestHandler>handler;
+          break;
+      }
     }
   }
   /**
