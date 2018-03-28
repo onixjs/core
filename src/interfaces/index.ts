@@ -320,6 +320,36 @@ export interface ErrorResponse {
 }
 
 export interface IOnixStatus {}
+
+export interface IView {
+  file: string;
+  handler: IViewHandler;
+}
+
+export interface IViewHandler {
+  (req: OnixHTTPRequest, buffer: Buffer): Promise<string>;
+}
+
+export interface IViewDirectory {
+  [key: string]: IView;
+}
+
+export interface IViewConfig {
+  file: string;
+  endpoint: string;
+  method?:
+    | HTTPMethods.GET
+    | HTTPMethods.POST
+    | HTTPMethods.PUT
+    | HTTPMethods.PATCH
+    | HTTPMethods.DELETE;
+}
+
+export interface OnixHTTPRequest extends http.IncomingMessage {
+  query: {[key: string]: any};
+  post: {[key: string]: any} | string;
+}
+
 /**
  * @author Jonathan Casarrubias
  * @enum OperationType
@@ -366,6 +396,7 @@ export enum ReflectionKeys {
   /*14*/ INJECTABLE_MODEL,
   /*15*/ INJECTABLE_SERVICE,
   /*16*/ INJECTABLE_DATASOURCE,
+  /*17*/ ROUTE_VIEW,
 }
 
 export enum HTTPMethods {

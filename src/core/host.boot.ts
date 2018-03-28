@@ -16,7 +16,7 @@ export class HostBoot {
    * @prop host
    * @description OnixJS host context reference.
    */
-  private host: OnixJS;
+  public host: OnixJS;
   /**
    * @constructor
    * @author Jonathan Casarrubias

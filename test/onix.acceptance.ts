@@ -9,16 +9,12 @@ import {IAppConfig, OnixMessage} from '../src/interfaces';
 import {OnixClient, AppReference, ComponentReference} from '@onixjs/sdk';
 import {Utils} from '@onixjs/sdk/dist/utils';
 import {NodeJS} from '@onixjs/sdk/dist/core/node.adapters';
-/**
- * Test Onix Version
- **/
+// Test Onix Version
 test('Onix version', t => {
   const onix: OnixJS = new OnixJS({cwd, port: 8085});
   t.is(onix.version, pkg.version);
 });
-/**
- * Test Onix App Starter
- **/
+//Test Onix App Starter
 test('Onix app starter', async t => {
   const onix: OnixJS = new OnixJS({cwd, port: 8083});
   await onix.load('TodoApp@todo.app:disabled');
@@ -31,18 +27,14 @@ test('Onix app starter', async t => {
   ]);
   await onix.stop();
 });
-/**
- * Test Onix App Pinger
- */
+//Test Onix App Pinger
 test('Onix app pinger', async t => {
   const onix: OnixJS = new OnixJS({cwd, port: 8084});
   await onix.load('TodoApp@todo.app:disabled');
   const config: IAppConfig = await onix.ping('TodoApp');
   t.true(config.disableNetwork);
 });
-/**
- * Test Onix Apps Say Hello
- **/
+//Test Onix Apps Say Hello
 test('Onix app greeter', async t => {
   const onix: OnixJS = new OnixJS({cwd});
   await onix.load('BobApp@bob.app');
@@ -55,9 +47,7 @@ test('Onix app greeter', async t => {
   // Both apps should communicate each other and say they are alive (true x 2)
   t.deepEqual(results.reduce((a, b) => a.concat(b)), [true, true]);
 });
-/**
- * Test Onix RPC component methods
- **/
+//Test Onix RPC component methods
 test('Onix rpc component methods from server', async t => {
   const onix: OnixJS = new OnixJS({cwd, port: 8085});
   await onix.load('TodoApp@todo.app:disabled');
@@ -79,9 +69,7 @@ test('Onix rpc component methods from server', async t => {
   t.truthy(result._id);
 });
 
-/**
- * Test Onix RPC component methods
- **/
+//Test Onix RPC component methods
 test('Onix rpc component methods from client', async t => {
   const onix: OnixJS = new OnixJS({cwd, port: 8086});
   await onix.load('TodoApp@todo.app');
@@ -120,9 +108,7 @@ test('Onix rpc component methods from client', async t => {
   });
 });
 
-/**
- * Test Onix RPC component stream
- ***/
+//Test Onix RPC component stream*
 test('Onix rpc component stream', async t => {
   const text: string = 'Hello SDK World';
   // Host Port 8087

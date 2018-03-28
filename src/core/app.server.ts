@@ -8,9 +8,10 @@ import {
 } from '../index';
 import {AppFactory} from './app.factory';
 import {CallResponser} from './call.responser';
-import * as WebSocket from 'uws';
 import {ClientConnection} from './index';
 import {CallStreamer} from './call.streamer';
+import {HTTPServer} from './http.server';
+import * as WebSocket from 'uws';
 /**
  * @function AppServer
  * @author Jonathan Casarrubias
@@ -22,10 +23,15 @@ import {CallStreamer} from './call.streamer';
  */
 export class AppServer {
   /**
-   * @property server
-   * @description ws server
+   * @property websocket
+   * @description ws websocket
    */
-  private server: WebSocket.Server;
+  private websocket: WebSocket.Server;
+  /**
+   * @property http
+   * @description ws http
+   */
+  private http: HTTPServer;
   /**
    * @property factory
    * @description Current process factory reference
@@ -74,8 +80,12 @@ export class AppServer {
       case OperationType.APP_CREATE:
         // Use Host Level configurations, like custom ports
         Object.assign(this.config, operation.message);
+        // Create HTTP If enabled
+        if (!this.config.disableNetwork) {
+          this.http = new HTTPServer(this.config);
+        }
         // Setup factory, responser and streamer
-        this.factory = new AppFactory(this.AppClass, this.config);
+        this.factory = new AppFactory(this.AppClass, this.config, this.http);
         this.responser = new CallResponser(this.factory, this.AppClass);
         this.streamer = new CallStreamer(this.factory, this.AppClass);
         break;
@@ -86,20 +96,21 @@ export class AppServer {
           new Promise((resolve, reject) => {
             // Start up Micra WebSocket Server
             if (!this.config.disableNetwork) {
-              this.server = new WebSocket.Server(
-                {host: this.config.host, port: this.config.port},
-                resolve,
-              );
+              // Requires to be started before creating websocket.
+              this.http.start();
+              // Ok now we can start the websocket
+              this.websocket = new WebSocket.Server({
+                server: this.http.getNative(),
+              });
               // Wait for client connections
-              this.server.on('connection', (ws: WebSocket) => {
+              this.websocket.on('connection', (ws: WebSocket) => {
                 ws.send(<IAppOperation>{
                   type: OperationType.APP_PING_RESPONSE,
                 });
                 new ClientConnection(ws, this.responser, this.streamer);
               });
-            } else {
-              resolve();
             }
+            resolve();
           }),
           // Start up application
           this.factory.app.start(),
@@ -111,7 +122,7 @@ export class AppServer {
       case OperationType.APP_STOP:
         // If network enabled, turn off the server
         if (!this.config.disableNetwork) {
-          this.server.close();
+          this.websocket.close();
         }
         await this.factory.app.stop();
         if (process.send) process.send({type: OperationType.APP_STOP_RESPONSE});

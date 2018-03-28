@@ -9,3 +9,4 @@ export * from './stream';
 export * from './rest';
 export * from './property';
 export * from './service';
+export * from './view';
