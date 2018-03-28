@@ -6,6 +6,7 @@ import {
   IDataSource,
   IPropertyConfig,
   IModelConfig,
+  IViewRenderer,
 } from '..';
 /**
  * @class Injector
@@ -69,10 +70,12 @@ export class Injector {
         Class: Constructor;
       } = Reflect.getMetadata(ReflectionKeys.INJECT_REQUEST, instance, prop);
       // Validate now
-      if (!injectable) return; // No injectable requestify that injectable class is installed within this module
+      if (!injectable || !injectable.Class) return; // No injectable requestify that injectable class is installed within this module
       if (
         config.models.map(s => s.name).indexOf(injectable.Class.name) < 0 &&
-        config.services.map(s => s.name).indexOf(injectable.Class.name) < 0
+        config.renderers.map(s => s.name).indexOf(injectable.Class.name) < 0 &&
+        config.services.map(s => s.name).indexOf(injectable.Class.name) < 0 &&
+        injectable.Class.name !== 'AppNotifier'
       ) {
         throw new Error(
           `ONIXJS CORE: Unable to inject an unregisted class "${
@@ -108,15 +111,50 @@ export class Injector {
               writable: false,
             });
           break;
-        default:
-          throw new Error(
-            `ONIXJS Error: injectable type is not valid, ${injectable.type}`,
-          );
+        case 'renderer':
+          if (
+            Reflect.hasMetadata(
+              ReflectionKeys.INJECTABLE_RENDERER,
+              injectable.Class.prototype,
+            )
+          )
+            Object.defineProperty(instance, prop, {
+              value: this.injectRenderer(injectable.Class, config),
+              writable: false,
+            });
+          break;
+        case 'notifier':
+          console.log('INJECTING NOTIFIER: ', config.notifier);
+          Object.defineProperty(instance, prop, {
+            value: config.notifier,
+            writable: false,
+          });
+          break;
       }
     });
   }
   /**
-   * @method injectModel
+   * @method injectRenderer
+   * @param Renderer
+   * @param config
+   * This method will inject a view renderer
+   */
+  private injectRenderer(
+    Renderer: new () => IViewRenderer,
+    config: IModuleConfig,
+  ) {
+    // Singleton render, no need for more instances :)
+    if (this.has(Renderer.name)) {
+      return this.get(Renderer.name);
+    }
+    // Model instance
+    const instance = new Renderer();
+    // Persist reference
+    this.set(Renderer.name, instance);
+    return instance;
+  }
+  /**
+   * @method injectRenderer
    * @param Model
    * @param config
    * This method will recursively setup every service, it will also
@@ -131,11 +169,6 @@ export class Injector {
       ReflectionKeys.INJECTABLE_MODEL,
       Model.prototype,
     );
-    // If there is no config this is an invalid model
-    if (!modelConfig)
-      throw new Error(
-        'ONIXJS: Unable to inject corrupted model, decorated configuration is missing',
-      );
     // Set datasource reference
     let datasource: IDataSource;
     if (this.has(modelConfig.datasource.name)) {

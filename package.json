@@ -1,6 +1,6 @@
 {
   "name": "@onixjs/core",
-  "version": "1.0.0-alpha.10",
+  "version": "1.0.0-alpha.11",
   "description": "The High-Performance SOA Real-Time Framework for Node.JS",
   "main": "dist/src/index.js",
   "scripts": {
@@ -58,6 +58,7 @@
     "@types/uws": "^0.13.1",
     "ava": "^0.25.0",
     "coveralls": "^3.0.0",
+    "dot": "^1.1.2",
     "finalhandler": "^1.1.0",
     "mongoose": "^5.0.4",
     "nyc": "^11.6.0",
@@ -94,6 +95,8 @@
   },
   "nyc": {
     "exclude": [
+      "dist/src/core/app.server.js",
+      "dist6/src/core/app.server.js",
       "coverage/**",
       "dist/test/**",
       "dist6/test/**",

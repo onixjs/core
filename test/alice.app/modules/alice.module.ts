@@ -10,6 +10,7 @@ import {AliceComponent} from './alice.component';
 @Module({
   models: [],
   services: [],
+  renderers: [],
   components: [AliceComponent],
 })
 export class AliceModule {}

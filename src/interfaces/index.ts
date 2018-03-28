@@ -1,5 +1,6 @@
 import {ChildProcess} from 'child_process';
 import * as http from 'http';
+import {AppNotifier} from '..';
 /**
  * @interface IAppConfig
  * @author Jonathan Casarrubias <gh: mean-expert-official>
@@ -36,6 +37,12 @@ export interface IModuleConfig {
    */
   components: Constructor[];
   /**
+   * @property renderers
+   * @description renderers are injectables, decoupled from the
+   * framework can be any javascript template render
+   */
+  renderers: (new () => IViewRenderer)[];
+  /**
    * @property models
    * @description Models are injectables, decoupled from the
    * framework can be a model from any type of orm.
@@ -59,6 +66,12 @@ export interface IModuleConfig {
     metadata: IMetaData,
     method: () => Promise<any>,
   ) => Promise<any>;
+  /**
+   * @property models
+   * @description This is an app level event emmiter, that will
+   * be injected for app level notifications.
+   */
+  notifier?: AppNotifier;
 }
 /**
  * @interface ModuleDirectory
@@ -350,6 +363,10 @@ export interface OnixHTTPRequest extends http.IncomingMessage {
   post: {[key: string]: any} | string;
 }
 
+export interface IViewRenderer {
+  process(view: string, args: Directory): string;
+}
+
 /**
  * @author Jonathan Casarrubias
  * @enum OperationType
@@ -397,6 +414,8 @@ export enum ReflectionKeys {
   /*15*/ INJECTABLE_SERVICE,
   /*16*/ INJECTABLE_DATASOURCE,
   /*17*/ ROUTE_VIEW,
+  /*18*/ INJECTABLE_RENDERER,
+  /*18*/ INJECTABLE_NOTIFIER,
 }
 
 export enum HTTPMethods {

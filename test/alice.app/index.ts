@@ -8,7 +8,6 @@ import {Application, MicroService} from '../../src/index';
  * and for testing purposes. It imports a AliceModule
  */
 @MicroService({
-  host: '127.0.0.1',
   port: 3001,
   modules: [AliceModule],
 })
