@@ -202,9 +202,9 @@ export interface Constructor {
  * DataSources.
  */
 export interface IDataSource {
-  connect(): void;
-  disconnect(): void;
-  register(name: string, model: any, schema: IModel);
+  connect(): Promise<any>;
+  disconnect(): Promise<any>;
+  register(name: Constructor, model: any, schema: IModel);
 }
 /**
  * @interface IModelConfig

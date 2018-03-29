@@ -1,5 +1,6 @@
 import {Mongoose, Schema} from 'mongoose';
 import {IDataSource, DataSource, IModel} from '../../src/index';
+import {Constructor} from '../../src/interfaces';
 /**
  * @class MongooseDatasource
  * @author Jonathan Casarrubias
@@ -40,7 +41,7 @@ export class MongooseDatasource implements IDataSource {
    * a JSON schema and a model name in order to get a mongoose
    * model instance.
    */
-  register(name: string, model: IModel, schema: Schema): any {
-    return this.mongoose.model(name, schema);
+  register(Class: Constructor, instance: IModel, schema: Schema): any {
+    return this.mongoose.model(Class.name, schema);
   }
 }

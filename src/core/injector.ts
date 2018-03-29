@@ -177,8 +177,13 @@ export class Injector {
       datasource = new modelConfig.datasource();
       // TODO: Validate it is a registered datasource
       // Or problems will arise
-      datasource.connect();
-      this.set(modelConfig.datasource.name, datasource);
+      datasource.connect().then(
+        // TODO: Threat datasource result
+        c => {
+          this.set(modelConfig.datasource.name, datasource);
+        },
+        e => console.log('ONIXJS DataSource: Unable to connect ', e),
+      );
     }
     // Model schema reference, will be parsed from instance decoration
     const schema = {};
@@ -197,11 +202,12 @@ export class Injector {
       }
     });
     // Set orm model instance reference
-    const instance = datasource.register(Model.name, model, schema);
+    const instance = datasource.register(Model, model, schema);
     // Persist reference
     this.set(Model.name, instance);
     return instance;
   }
+
   /**
    * @method injectService
    * @param Service
