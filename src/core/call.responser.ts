@@ -91,21 +91,23 @@ export class CallResponser {
       }
       // Execute main hook, might be app/system or module level.
       const result = await mainHook(
-        this.factory.app,
+        (name: string) => this.factory.scopes[segments[1]].get(name),
         message,
         async (): Promise<any> => {
           // If there is a custom component level hook for this call
           // then execute it first.
           if (slaveHook) {
             // Do whatever the developer defined in component config
-            return await slaveHook(this.factory.app, message, async (): Promise<
-              any
-            > => {
-              // Ok cool, let me finish. lol (freaking genius)
-              return method
-                ? await method.call(scope, message.request.payload)
-                : null;
-            });
+            return await slaveHook(
+              (name: string) => this.factory.scopes[segments[1]].get(name),
+              message,
+              async (): Promise<any> => {
+                // Ok cool, let me finish. lol (freaking genius)
+                return method
+                  ? await method.call(scope, message.request.payload)
+                  : null;
+              },
+            );
           } else {
             // Else just call the requested method now.
             return method
