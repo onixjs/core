@@ -111,11 +111,13 @@ export class AppFactory {
         // Create a new component instance
         moduleInstance[Component.name] = new Component();
         // Then recursively inject models and services within this module
-        this.scopes[Module.name].inject(
-          Component,
-          moduleInstance[Component.name],
-          Object.assign(config, {notifier: this.notifier}),
-        );
+        this.scopes[Module.name]
+          .inject(
+            Component,
+            moduleInstance[Component.name],
+            Object.assign(config, {notifier: this.notifier}),
+          )
+          .then(() => null, e => console.log(e));
         // Now setup any registered view
         this.setupViews(moduleInstance[Component.name]);
       }

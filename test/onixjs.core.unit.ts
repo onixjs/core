@@ -563,7 +563,7 @@ test('Core: Injector.', async t => {
   }
   // create component instance
   const instance: MyComponent = new MyComponent();
-  injector.inject(MyComponent, instance, {
+  await injector.inject(MyComponent, instance, {
     models: [],
     renderers: [],
     services: [MyService],
@@ -639,7 +639,7 @@ test('Core: Inject Model and Services.', async t => {
   // Inject Model and Service
   const injector: Injector = new Injector();
   const instance: TodoComponent = new TodoComponent();
-  injector.inject(TodoComponent, instance, {
+  await injector.inject(TodoComponent, instance, {
     components: [],
     renderers: [],
     models: [TodoModel, Todo2Model],
@@ -690,13 +690,11 @@ test('Core: Inject Throws Uninstalled Injectable.', async t => {
   const injector: Injector = new Injector();
   const instance: TodoComponent = new TodoComponent();
   const error = await t.throws(
-    new Promise(() => {
-      injector.inject(TodoComponent, instance, {
-        components: [],
-        renderers: [],
-        models: [],
-        services: [],
-      });
+    injector.inject(TodoComponent, instance, {
+      components: [],
+      renderers: [],
+      models: [],
+      services: [],
     }),
   );
   // Test Service
@@ -1026,13 +1024,14 @@ test('Core: Notifier.', async t => {
   // Start App Factory
   const injector: Injector = new Injector();
   // Inject Notifier
-  injector.inject(NotifierComponent, instance, {
+  await injector.inject(NotifierComponent, instance, {
     renderers: [],
     components: [],
     services: [],
     models: [],
     notifier,
   });
+
   // Test Notifier Event
   instance.test().then(r => t.true(r), e => console.log(e));
   // Send test event
