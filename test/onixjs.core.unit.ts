@@ -28,6 +28,7 @@ import {
   IViewRenderer,
   Directory,
   ViewRenderer,
+  Constructor,
 } from '../src';
 import {AppNotifier} from '../src/core/app.notifier';
 import {ClientConnection} from '../src/core/connection';
@@ -600,8 +601,8 @@ test('Core: Inject Model and Services.', async t => {
     async disconnect(): Promise<void> {
       return this.mongoose.disconnect();
     }
-    register(name: string, model: IModel, schema: Schema): any {
-      return this.mongoose.model(name, schema);
+    register(Class: Constructor, ins: IModel, schema: Schema): any {
+      return this.mongoose.model(Class.name, schema);
     }
   }
   // Model
@@ -669,8 +670,8 @@ test('Core: Inject Throws Uninstalled Injectable.', async t => {
     async disconnect(): Promise<void> {
       return this.mongoose.disconnect();
     }
-    register(name: string, model: IModel, schema: Schema): any {
-      return this.mongoose.model(name, schema);
+    register(Class: Constructor, model: IModel, schema: Schema): any {
+      return this.mongoose.model(Class.name, schema);
     }
   }
   // Model

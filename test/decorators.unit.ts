@@ -32,13 +32,13 @@ test('@Component decorator should define config metadata.', t => {
 test('@Datasource decorator should define config metadata.', t => {
   @DataSource()
   class MyDataSource implements IDataSource {
-    connect(): void {
+    async connect() {
       throw new Error('Method not implemented.');
     }
-    disconnect(): void {
+    async disconnect() {
       throw new Error('Method not implemented.');
     }
-    register(name: string, model: any, schema: IModel) {
+    register(Class: Constructor, model: any, schema: IModel) {
       throw new Error('Method not implemented.');
     }
   }
@@ -96,13 +96,13 @@ test('@InjectModel decorator should request an injection.', t => {
   const type: string = 'model';
   @Model({
     datasource: class DummyDS implements IDataSource {
-      connect(): void {
+      async connect() {
         throw new Error('Method not implemented.');
       }
-      disconnect(): void {
+      async disconnect() {
         throw new Error('Method not implemented.');
       }
-      register(name: string, model: any, schema: IModel) {
+      register(Class: Constructor, model: any, schema: IModel) {
         throw new Error('Method not implemented.');
       }
     },
