@@ -71,4 +71,50 @@ export class LifeCycle {
     // After Method Call
     return result;
   }
+  /**
+   * @method onModuleMethodStream
+   * @param {Application} app
+   * @param method
+   * @description This method is executed on each public
+   * Module method.
+   *
+   * Unless a custom LifeCycle class is provided for this
+   * Application.
+   */
+  async onModuleMethodStream(
+    app: IApp,
+    message: OnixMessage,
+    stream: (handler: (data) => any) => any,
+  ): Promise<any> {
+    console.log('Before Module Method Stream');
+    // Before Method Stream (Do something with request)
+    stream(data => {
+      console.log('After Module Method Stream', data);
+      // Afet method stream
+      return data;
+    });
+  }
+  /**
+   * @method onComponentMethodCall
+   * @param {Application} app
+   * @param method
+   * @description This method is executed on each public
+   * Module method.
+   *
+   * Unless a custom LifeCycle class is provided for this
+   * Application.
+   */
+  async onComponentMethodStream(
+    app: IApp,
+    message: OnixMessage,
+    stream: (handler: (data) => any) => any,
+  ): Promise<any> {
+    console.log('Before Component Method Stream');
+    // Before Method Stream (Do something with request)
+    stream(data => {
+      // Afet method stream
+      console.log('After Component Method Stream', data);
+      return data;
+    });
+  }
 }

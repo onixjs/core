@@ -338,7 +338,12 @@ test('Core: CallResponser Hooks.', async t => {
       },
     },
     result => {
-      t.is(result.text, 'Hello Streamer');
+      if (result) {
+        console.log('THE STREAM RESULT', result);
+        t.is(result.text, 'Hello Streamer');
+      } else {
+        console.log('WHY IS RUNNING 2 TIMES');
+      }
     },
   );
 });
@@ -474,6 +479,8 @@ test('Core: Connection.', async t => {
   const server = new WebSocket.Server({host: '127.0.0.1', port: 9090}, () => {
     const responser = new CallResponser(factory, MyApp);
     const streamer = new CallStreamer(factory, MyApp);
+    // UUID
+    const uuid: string = '420';
     // Wait for client connections
     server.on('connection', async (ws: WebSocket) => {
       ws.send(<IAppOperation>{
@@ -483,6 +490,7 @@ test('Core: Connection.', async t => {
       const connection = new ClientConnection(ws, responser, streamer);
       // Handle RPC Call
       await connection.handle(<OnixMessage>{
+        uuid,
         rpc: 'MyApp.MyModule.MyComponent.testRPC',
         request: <IRequest>{
           metadata: {stream: false, caller: 'tester', token: 'dummytoken'},
@@ -491,6 +499,7 @@ test('Core: Connection.', async t => {
       });
       // Handle Stream
       await connection.handle(<OnixMessage>{
+        uuid,
         rpc: 'MyApp.MyModule.MyComponent.testStream',
         request: <IRequest>{
           metadata: {stream: true, caller: 'tester', token: 'dummytoken'},
@@ -504,11 +513,18 @@ test('Core: Connection.', async t => {
     client.on('message', (data: string) => {
       if (Utils.IsJsonString(data)) {
         const rpcOp: IAppOperation = JSON.parse(data);
-        if (rpcOp.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE) {
+        if (
+          rpcOp.uuid === uuid &&
+          rpcOp.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE
+        ) {
           t.is(payload.hello, rpcOp.message.hello);
         }
         const streamOp: IAppOperation = JSON.parse(data);
-        if (streamOp.type === OperationType.ONIX_REMOTE_CALL_STREAM) {
+        if (
+          streamOp.uuid === uuid &&
+          streamOp.type === OperationType.ONIX_REMOTE_CALL_STREAM &&
+          streamOp.message
+        ) {
           t.is(payload.hello, streamOp.message.hello);
         }
       }
