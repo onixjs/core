@@ -49,7 +49,6 @@ export class TodoComponent implements IComponent {
    */
   @RPC()
   async addTodo(todo: TodoModel): Promise<TodoModel> {
-    console.log('REQUEST: ', todo);
     const result = await this.service.create(todo);
     this.emmiter.emit('onCreate', result);
     return result;
@@ -64,7 +63,6 @@ export class TodoComponent implements IComponent {
   @Stream()
   async onCreate(stream) {
     this.emmiter.on('onCreate', todo => {
-      console.log('STREAMING: ', todo);
       stream(todo);
     });
   }

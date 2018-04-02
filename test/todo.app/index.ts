@@ -1,5 +1,5 @@
 import {TodoModule} from '../todo.shared/todo.module';
-import {MicroService, Application} from '../../src/index';
+import {SOAService, Application} from '../../src/index';
 /**
  * @class TodoApp
  * @author Jonathan Casarrubias
@@ -7,7 +7,7 @@ import {MicroService, Application} from '../../src/index';
  * @description This example app is used as example
  * and for testing purposes. It imports a TodoModule.
  */
-@MicroService({
+@SOAService({
   port: 8079,
   modules: [TodoModule],
 })

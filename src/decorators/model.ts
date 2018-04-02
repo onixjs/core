@@ -8,11 +8,11 @@ import {ReflectionKeys, IModelConfig, Constructor} from '../index';
  * class as metadata for further usage.
  */
 export function Model(config: IModelConfig) {
-  return (target: Constructor) => {
+  return (Class: Constructor) => {
     Reflect.defineMetadata(
       ReflectionKeys.INJECTABLE_MODEL,
       config,
-      target.prototype,
+      Class.prototype,
     );
   };
 }

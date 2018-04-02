@@ -21,9 +21,12 @@ import {OnixMessage} from '../../src/interfaces';
     message: OnixMessage,
     method,
   ): Promise<any> => {
-    // Add Created At
-    const date = new Date();
-    message.request.payload.createdAt = date.toISOString();
+    // Add createdAt for any newly created todo
+    if (message.rpc.match(/addTodo/)) {
+      // Add Created At
+      const date = new Date();
+      message.request.payload.createdAt = date.toISOString();
+    }
     // before call
     const result = await method();
     // after call

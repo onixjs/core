@@ -10,9 +10,9 @@ import {
   Constructor,
   Service,
   Model,
-  IRESTConfig,
+  IMiddleware,
 } from '../src';
-import {REST} from '../src/decorators/rest';
+import {Router} from '../src/decorators/onix.router';
 import {RPC} from '../src/decorators/rpc';
 import {Stream} from '../src/decorators';
 // Test component decorator
@@ -135,92 +135,92 @@ test('@InjectModel decorator should fail while injecting invalid classes.', asyn
     'ONIXJS Error: Invalid injectable model class MyModel, it is not a valid model.',
   );
 });
-// Test Rest.Get decorator
-test('@REST.Get should decorate a get endpoint.', t => {
+// Test Router.Get decorator
+test('@Router.Get should decorate a get endpoint.', t => {
   const uri: string = 'my-endpoint';
   class MyClass {
-    @REST.Get({uri, args: []})
+    @Router.Get(uri)
     myEndpoint() {}
   }
   const instance: MyClass = new MyClass();
-  const config: IRESTConfig = Reflect.getMetadata(
-    ReflectionKeys.REST_METHOD,
+  const config: IMiddleware = Reflect.getMetadata(
+    ReflectionKeys.MIDDLEWARE,
     instance,
     'myEndpoint',
   );
   t.truthy(config);
-  t.is(config.uri, uri);
+  t.is(config.endpoint, uri);
   t.is(config.method, 'GET');
 });
-// Test Rest.Post decorator
-test('@REST.Post should decorate a post endpoint.', t => {
+// Test Router.Post decorator
+test('@Router.Post should decorate a post endpoint.', t => {
   const uri: string = 'my-endpoint';
   class MyClass {
-    @REST.Post({uri, args: []})
+    @Router.Post(uri)
     myEndpoint() {}
   }
   const instance: MyClass = new MyClass();
-  const config: IRESTConfig = Reflect.getMetadata(
-    ReflectionKeys.REST_METHOD,
+  const config: IMiddleware = Reflect.getMetadata(
+    ReflectionKeys.MIDDLEWARE,
     instance,
     'myEndpoint',
   );
   t.truthy(config);
-  t.is(config.uri, uri);
+  t.is(config.endpoint, uri);
   t.is(config.method, 'POST');
 });
-// Test Rest.Put decorator
-test('@REST.Put should decorate a put endpoint.', t => {
+// Test Router.Put decorator
+test('@Router.Put should decorate a put endpoint.', t => {
   const uri: string = 'my-endpoint';
   class MyClass {
-    @REST.Put({uri, args: []})
+    @Router.Put(uri)
     myEndpoint() {}
   }
   const instance: MyClass = new MyClass();
-  const config: IRESTConfig = Reflect.getMetadata(
-    ReflectionKeys.REST_METHOD,
+  const config: IMiddleware = Reflect.getMetadata(
+    ReflectionKeys.MIDDLEWARE,
     instance,
     'myEndpoint',
   );
   t.truthy(config);
-  t.is(config.uri, uri);
+  t.is(config.endpoint, uri);
   t.is(config.method, 'PUT');
 });
-// Test Rest.Patch decorator
-test('@REST.Patch should decorate a patch endpoint.', t => {
+// Test Router.Patch decorator
+test('@Router.Patch should decorate a patch endpoint.', t => {
   const uri: string = 'my-endpoint';
   class MyClass {
-    @REST.Patch({uri, args: []})
+    @Router.Patch(uri)
     myEndpoint() {}
   }
   const instance: MyClass = new MyClass();
-  const config: IRESTConfig = Reflect.getMetadata(
-    ReflectionKeys.REST_METHOD,
+  const config: IMiddleware = Reflect.getMetadata(
+    ReflectionKeys.MIDDLEWARE,
     instance,
     'myEndpoint',
   );
   t.truthy(config);
-  t.is(config.uri, uri);
+  t.is(config.endpoint, uri);
   t.is(config.method, 'PATCH');
 });
-// Test Rest.Delete decorator
-test('@REST.Delete should decorate a delete endpoint.', t => {
+// Test Router.Delete decorator
+test('@Router.Delete should decorate a delete endpoint.', t => {
   const uri: string = 'my-endpoint';
   class MyClass {
-    @REST.Delete({uri, args: []})
+    @Router.Delete(uri)
     myEndpoint() {}
   }
   const instance: MyClass = new MyClass();
-  const config: IRESTConfig = Reflect.getMetadata(
-    ReflectionKeys.REST_METHOD,
+  const config: IMiddleware = Reflect.getMetadata(
+    ReflectionKeys.MIDDLEWARE,
     instance,
     'myEndpoint',
   );
   t.truthy(config);
-  t.is(config.uri, uri);
+  t.is(config.endpoint, uri);
   t.is(config.method, 'DELETE');
 });
-// Test Rest.Delete decorator
+// Test Router.Delete decorator
 test('@RPC Method should be decorated.', t => {
   class MyClass {
     @RPC()
@@ -234,7 +234,7 @@ test('@RPC Method should be decorated.', t => {
   );
   t.true(enabled);
 });
-// Test Rest.Delete decorator
+// Test Router.Delete decorator
 test('@Stream Method should be decorated.', t => {
   class MyClass {
     @Stream()

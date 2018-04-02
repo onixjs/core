@@ -7,10 +7,7 @@ import {AppNotifier} from '..';
  * @description This interface will provida configuration for
  * a given application.
  */
-export interface IAppConfig extends DomainConfig {
-  // If network enabled, an HTTP server will be created
-  // Else only OS IO Streams will be used.
-  disableNetwork?: boolean;
+export interface IAppConfig extends OnixConfig {
   // Modules to be loaded for this application
   modules: Constructor[];
 }
@@ -202,8 +199,8 @@ export interface Constructor {
  * DataSources.
  */
 export interface IDataSource {
-  connect(): Promise<any>;
-  disconnect(): Promise<any>;
+  connect();
+  disconnect();
   register(name: Constructor, model: any, schema: IModel);
 }
 /**
@@ -242,7 +239,9 @@ export interface IACL {
  * acl.
  */
 export interface IComponentConfig {
-  ACL?: IACLRule[];
+  // Optional route path, will be used as base
+  // For any HTTP endpoint declared within a component
+  route?: string;
   /* Optional lifecycle, if defined it will be executed
   after the module lifecycle, it won't override but
   it will execute after the module's one */
@@ -251,6 +250,18 @@ export interface IComponentConfig {
     metadata: IMetaData,
     method: () => Promise<any>,
   ) => Promise<any>;
+}
+
+export interface IMiddleware extends IViewConfig {
+  param?: string;
+  method: string;
+  type: RouterTypes;
+}
+
+export interface IViewConfig {
+  endpoint?: string;
+  file?: string;
+  method?: string;
 }
 
 /**
@@ -286,7 +297,11 @@ export interface DomainConfig {
 
 export interface OnixConfig extends DomainConfig {
   cwd?: string;
-  ssl?: ISSlConfig;
+  // If network enabled, a HTTP server will be created
+  network?: {
+    disabled: boolean;
+    ssl?: ISSlConfig;
+  };
 }
 
 export interface BootConfig {
@@ -308,7 +323,6 @@ export interface HttpRequestHandler {
 export interface IRESTConfig {
   uri: string;
   method?: string;
-  args: IRESTArgument[];
 }
 
 export interface IRESTArgument {
@@ -345,17 +359,6 @@ export interface IViewHandler {
 
 export interface IViewDirectory {
   [key: string]: IView;
-}
-
-export interface IViewConfig {
-  file: string;
-  endpoint: string;
-  method?:
-    | HTTPMethods.GET
-    | HTTPMethods.POST
-    | HTTPMethods.PUT
-    | HTTPMethods.PATCH
-    | HTTPMethods.DELETE;
 }
 
 export interface OnixHTTPRequest extends http.IncomingMessage {
@@ -413,15 +416,24 @@ export enum ReflectionKeys {
   /*14*/ INJECTABLE_MODEL,
   /*15*/ INJECTABLE_SERVICE,
   /*16*/ INJECTABLE_DATASOURCE,
-  /*17*/ ROUTE_VIEW,
+  /*17*/ MIDDLEWARE,
   /*18*/ INJECTABLE_RENDERER,
   /*18*/ INJECTABLE_NOTIFIER,
 }
 
 export enum HTTPMethods {
-  GET,
-  POST,
-  PATCH,
-  PUT,
-  DELETE,
+  GET = 'GET',
+  POST = 'POST',
+  PATCH = 'PATCH',
+  PUT = 'PUT',
+  DELETE = 'DELETE',
+}
+
+export enum RouterTypes {
+  USE,
+  ALL,
+  HTTP,
+  VIEW,
+  PARAM,
+  STATIC,
 }
