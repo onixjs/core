@@ -33,7 +33,7 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.15';
+    return '1.0.0-alpha.16';
   }
   /**
    * @property server
@@ -170,7 +170,7 @@ export class OnixJS {
           // Send host level parameters here
           message: {
             port,
-            disableNetwork,
+            network: {disabled: disableNetwork},
           },
         });
       }
@@ -235,23 +235,21 @@ export class OnixJS {
       Promise.all(
         // Concatenate an array of promises, starting from Onix Server,
         // Then map each app reference to create promises for start operation.
-        [this.startAppServer()].concat(
-          Object.keys(this._apps).map((name: string) => {
-            return new Promise<OperationType.APP_START_RESPONSE>(
-              (resolve, reject) => {
-                this._apps[name].process.on(
-                  'message',
-                  (operation: IAppOperation) => {
-                    if (operation.type === OperationType.APP_START_RESPONSE) {
-                      resolve(OperationType.APP_START_RESPONSE);
-                    }
-                  },
-                );
-                this._apps[name].process.send({type: OperationType.APP_START});
-              },
-            );
-          }),
-        ),
+        Object.keys(this._apps).map((name: string) => {
+          return new Promise<OperationType.APP_START_RESPONSE>(
+            (resolve, reject) => {
+              this._apps[name].process.on(
+                'message',
+                (operation: IAppOperation) => {
+                  if (operation.type === OperationType.APP_START_RESPONSE) {
+                    resolve(OperationType.APP_START_RESPONSE);
+                  }
+                },
+              );
+              this._apps[name].process.send({type: OperationType.APP_START});
+            },
+          );
+        }),
       )
         // Once every app is loaded, then we start the system server
         .then(
@@ -296,8 +294,7 @@ export class OnixJS {
     ).then(
       (res: OperationType.APP_STOP_RESPONSE[]) =>
         new Promise<OperationType.APP_STOP_RESPONSE[]>((resolve, reject) => {
-          this._schemaProvider.stop();
-          resolve(res);
+          this._schemaProvider.stop(() => resolve(res));
         }),
     );
   }
@@ -315,18 +312,6 @@ export class OnixJS {
         resolve(OperationType.APP_START_RESPONSE);
       },
     );
-  }
-  /**
-   * @method startAppServer
-   * @author Jonathan Casarrubias
-   * @license MIT
-   * @returns Promise<OperationType.APP_START_RESPONSE[]>
-   * @description This method will start the server application.
-   */
-  private async startAppServer(): Promise<OperationType.APP_START_RESPONSE> {
-    return new Promise<OperationType.APP_START_RESPONSE>((resolve, reject) => {
-      resolve(OperationType.APP_START_RESPONSE);
-    });
   }
 
   public apps(): IAppDirectory {

@@ -1,4 +1,4 @@
-export * from './microservice';
+export * from './soa.service';
 export * from './inject';
 export * from './model';
 export * from './module';
@@ -6,7 +6,7 @@ export * from './datasource';
 export * from './component';
 export * from './rpc';
 export * from './stream';
-export * from './rest';
+export * from './onix.router';
 export * from './property';
 export * from './service';
 export * from './view';

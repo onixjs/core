@@ -1,7 +1,8 @@
 import 'reflect-metadata';
-import {OnixJS, IAppDirectory, IAppConfig, HTTPMethods} from '../index';
+import {OnixJS, IAppDirectory, IAppConfig} from '../index';
+import * as fs from 'fs';
 import * as http from 'http';
-import {HTTPServer} from './http.server';
+import * as https from 'https';
 /**
  * @function SchemaProvider
  * @author Jonathan Casarrubias
@@ -16,13 +17,16 @@ export class SchemaProvider {
    * @property server
    * @description http server
    */
-  private server: HTTPServer;
+  private server: http.Server | https.Server;
   /**
    * @constructor
    * @param onix
    * @param config
    */
-  constructor(private onix: OnixJS) {}
+  constructor(private onix: OnixJS) {
+    // Listener for closing process
+    process.on('exit', () => this.stop());
+  }
   /**
    * @method start
    * @author Jonathan Casarrubias
@@ -32,19 +36,38 @@ export class SchemaProvider {
    **/
   start(): void {
     // Setup server
-    this.server = new HTTPServer(this.onix.config);
-    this.server.register(HTTPMethods.GET, '/', (req, res) =>
-      this.listener(req, res),
-    );
-    this.server.start();
+    this.server =
+      this.onix.config.port === 443
+        ? // Create secure HTTPS Connection
+          https
+            .createServer(
+              {
+                key: fs.readFileSync(
+                  this.onix.config.network!.ssl
+                    ? this.onix.config.network!.ssl!.key
+                    : './ssl/file.key',
+                ),
+                cert: fs.readFileSync(
+                  this.onix.config.network!.ssl
+                    ? this.onix.config.network!.ssl!.cert
+                    : './ssl/file.cert',
+                ),
+              },
+              (req, res) => this.listener(req, res),
+            )
+            .listen(this.onix.config.port)
+        : // Create insecure HTTP Connection
+          http
+            .createServer((req, res) => this.listener(req, res))
+            .listen(this.onix.config.port);
     // Indicate the ONIX SERVER is now listening on the given port
     console.log(
       `ONIX SCHEMA PROVIDER: Listening on port ${this.onix.config.port}`,
     );
   }
 
-  stop(): void {
-    this.server.stop();
+  stop(cb?): void {
+    this.server.close(cb);
   }
 
   listener(req: http.IncomingMessage, res: http.ServerResponse): void {
@@ -60,6 +83,9 @@ export class SchemaProvider {
         configs[name] = apps[name].config;
       });
     // Response the schema now
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,PATCH,POST,DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Content-Type', 'application/json');
     res.writeHead(200, {'Content-Type': 'application/json'});
     res.end(JSON.stringify(configs));

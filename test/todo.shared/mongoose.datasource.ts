@@ -1,6 +1,6 @@
-import {Mongoose, Schema} from 'mongoose';
-import {IDataSource, DataSource, IModel} from '../../src/index';
-import {Constructor} from '../../src/interfaces';
+import {Mongoose, Schema, Model, Document} from 'mongoose';
+import {IDataSource, DataSource} from '../../src/index';
+import {Constructor, IModel} from '../../src/interfaces';
 /**
  * @class MongooseDatasource
  * @author Jonathan Casarrubias
@@ -20,18 +20,24 @@ export class MongooseDatasource implements IDataSource {
    * @description This method should connect the mongoose ORM
    * as described in their documentation
    */
-  async connect(): Promise<Mongoose> {
-    return this.mongoose.connect(
-      'mongodb://lb-sdk-test:lb-sdk-test@ds153400.mlab.com:53400/heroku_pmkjxjwz',
-    );
+  connect() {
+    this.mongoose
+      .connect(
+        'mongodb://lb-sdk-test:lb-sdk-test@ds153400.mlab.com:53400/heroku_pmkjxjwz',
+      )
+      .then(() => {
+        console.log('MongoDB Connected');
+      }, console.error);
   }
   /**
    * @method disconnect
    * @description This method should disconnect the mongoose ORM
    * as described in their documentation
    */
-  async disconnect(): Promise<void> {
-    return this.mongoose.disconnect();
+  disconnect() {
+    this.mongoose.disconnect().then(() => {
+      console.log('MongoDB Connected');
+    }, console.error);
   }
   /**
    * @method method
@@ -41,7 +47,11 @@ export class MongooseDatasource implements IDataSource {
    * a JSON schema and a model name in order to get a mongoose
    * model instance.
    */
-  register(Class: Constructor, instance: IModel, schema: Schema): any {
+  register(
+    Class: Constructor,
+    instance: IModel,
+    schema: Schema,
+  ): Model<Document> {
     return this.mongoose.model(Class.name, schema);
   }
 }
