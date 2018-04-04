@@ -1,5 +1,5 @@
 import {AliceModule} from './modules/alice.module';
-import {Application, MicroService} from '../../src/index';
+import {Application, SOAService} from '../../src/index';
 /**
  * @class AliceApp
  * @author Jonathan Casarrubias
@@ -7,7 +7,7 @@ import {Application, MicroService} from '../../src/index';
  * @description This example app is used as example
  * and for testing purposes. It imports a AliceModule
  */
-@MicroService({
+@SOAService({
   port: 3001,
   modules: [AliceModule],
 })

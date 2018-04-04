@@ -6,10 +6,11 @@ const pkg = require('../../package.json');
 const cwd = path.join(process.cwd(), 'dist', 'test');
 import * as WebSocket from 'uws';
 import {IAppConfig, OnixMessage} from '../src/interfaces';
-import {OnixClient, AppReference, ComponentReference} from '@onixjs/sdk';
 import {Utils} from '@onixjs/sdk/dist/utils';
+import {OnixClient, AppReference, ComponentReference} from '@onixjs/sdk';
 import {NodeJS} from '@onixjs/sdk/dist/core/node.adapters';
 // Test Onix Version
+
 test('Onix version', t => {
   const onix: OnixJS = new OnixJS({cwd, port: 8085});
   t.is(onix.version, pkg.version);
@@ -19,9 +20,8 @@ test('Onix app starter', async t => {
   const onix: OnixJS = new OnixJS({cwd, port: 8083});
   await onix.load('TodoApp@todo.app:disabled');
   const results: OperationType.APP_START_RESPONSE[] = await onix.start();
+  console.log('THE APP START RESULT: ', results);
   t.deepEqual(results, [
-    // One for the server
-    OperationType.APP_START_RESPONSE,
     // Second for the loaded app
     OperationType.APP_START_RESPONSE,
   ]);
@@ -32,7 +32,8 @@ test('Onix app pinger', async t => {
   const onix: OnixJS = new OnixJS({cwd, port: 8084});
   await onix.load('TodoApp@todo.app:disabled');
   const config: IAppConfig = await onix.ping('TodoApp');
-  t.true(config.disableNetwork);
+  console.log('SOME CONFIG: ', config);
+  t.true(config.network!.disabled);
 });
 //Test Onix Apps Say Hello
 test('Onix app greeter', async t => {
@@ -47,6 +48,7 @@ test('Onix app greeter', async t => {
   // Both apps should communicate each other and say they are alive (true x 2)
   t.deepEqual(results.reduce((a, b) => a.concat(b)), [true, true]);
 });
+
 //Test Onix RPC component methods
 test('Onix rpc component methods from server', async t => {
   const onix: OnixJS = new OnixJS({cwd, port: 8085});

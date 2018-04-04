@@ -10,9 +10,13 @@ import {AppFactory} from './app.factory';
 import {CallResponser} from './call.responser';
 import {ClientConnection} from './index';
 import {CallStreamer} from './call.streamer';
-import {HTTPServer} from './http.server';
-import * as WebSocket from 'uws';
 import {AppNotifier} from './app.notifier';
+import * as Router from 'router';
+import * as WebSocket from 'uws';
+import * as fs from 'fs';
+import * as http from 'http';
+import * as https from 'https';
+import * as finalhandler from 'finalhandler';
 /**
  * @function AppServer
  * @author Jonathan Casarrubias
@@ -32,7 +36,20 @@ export class AppServer {
    * @property http
    * @description ws http
    */
-  private http: HTTPServer;
+  private http: http.Server | https.Server;
+  /**
+   * @property router
+   * @description Application level router, will provider
+   * middleware implementation for cross-compatibility.
+   */
+  public router: Router = new Router();
+  /**
+   * @property startedAt
+   * @description Will persist in memory the date time
+   * when this class was initialized, so we provide that
+   * on the built-in status route.
+   */
+  public startedAt: number = Date.now();
   /**
    * @property factory
    * @description Current process factory reference
@@ -63,10 +80,20 @@ export class AppServer {
    */
   constructor(private AppClass: AppConstructor, private config: IAppConfig) {
     // Setup Node Process
-    if (process.on)
+    if (process.on) {
+      // Listener for parent messages
       process.on('message', (operation: IAppOperation) =>
         this.operation(operation),
       );
+      // Listener for closing process
+      process.on('exit', () =>
+        this.operation({
+          uuid: 'root',
+          type: OperationType.APP_STOP,
+          message: '',
+        }),
+      );
+    }
   }
   /**
    * @method operation
@@ -87,17 +114,20 @@ export class AppServer {
       case OperationType.APP_CREATE:
         // Use Host Level configurations, like custom ports
         Object.assign(this.config, operation.message);
-        // Create HTTP If enabled
-        if (!this.config.disableNetwork) {
-          this.http = new HTTPServer(this.config);
+        // Create HTTP (If enabled)
+        if (
+          !this.config.network ||
+          (this.config.network && !this.config.network!.disabled)
+        ) {
+          this.http = this.setupHTTP();
         }
-        // Setup factory, responser and streamer
-        this.factory = new AppFactory(
-          this.AppClass,
-          this.config,
-          this.notifier,
-          this.http,
-        );
+        // Setup factory
+        this.factory = new AppFactory(this.AppClass);
+        this.factory.config = this.config;
+        this.factory.router = this.router;
+        this.factory.notifier = this.notifier;
+        this.factory.setup();
+        // Setup responser and streamer
         this.responser = new CallResponser(this.factory, this.AppClass);
         this.streamer = new CallStreamer(this.factory, this.AppClass);
         break;
@@ -107,12 +137,16 @@ export class AppServer {
         await Promise.all([
           new Promise((resolve, reject) => {
             // Start up Micra WebSocket Server
-            if (!this.config.disableNetwork) {
+            if (
+              !this.config.network ||
+              (this.config.network && !this.config.network!.disabled)
+            ) {
               // Requires to be started before creating websocket.
-              this.http.start();
+              console.log('STARTING HTTP SERVER:', this.config);
+              this.http.listen(this.config.port || 6000);
               // Ok now we can start the websocket
               this.websocket = new WebSocket.Server({
-                server: this.http.getNative(),
+                server: this.http,
               });
               // Wait for client connections
               this.websocket.on('connection', (ws: WebSocket) => {
@@ -139,7 +173,11 @@ export class AppServer {
       // Event sent from the broker when stoping a project
       case OperationType.APP_STOP:
         // If network enabled, turn off the server
-        if (!this.config.disableNetwork) {
+        if (
+          !this.config.network ||
+          (this.config.network && !this.config.network!.disabled)
+        ) {
+          this.http.close();
           this.websocket.close();
         }
         await this.factory.app.stop();
@@ -180,6 +218,46 @@ export class AppServer {
           });
         break;
     }
+  }
+  /**
+   * @method setupHTTP
+   * @description This method will initialize an HTTP Server
+   * and assign some built-in routes.
+   */
+  setupHTTP(): http.Server | https.Server {
+    // Define Service Uptime Endpoint
+    this.router.get(
+      '/.uptime',
+      (req: http.IncomingMessage, res: http.ServerResponse) => {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.end(JSON.stringify({uptime: Date.now() - this.startedAt}));
+      },
+    );
+    // Return an HTTP Server Instance
+    return this.config.port === 443
+      ? // Create secure HTTPS Connection
+        https.createServer(
+          {
+            key: fs.readFileSync(
+              this.config.network && this.config.network!.ssl
+                ? this.config.network!.ssl!.key
+                : './ssl/file.key',
+            ),
+            cert: fs.readFileSync(
+              this.config.network && this.config.network!.ssl
+                ? this.config.network!.ssl!.cert
+                : './ssl/file.cert',
+            ),
+          },
+          (req, res) => this.listener(req, res),
+        )
+      : // Create insecure HTTP Connection
+        http.createServer((req, res) => this.listener(req, res));
+  }
+
+  listener(req: http.IncomingMessage, res: http.ServerResponse) {
+    // Here you might need to do something dude...
+    this.router(req, res, finalhandler(req, res));
   }
   /**
    * @method greet

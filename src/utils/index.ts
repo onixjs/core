@@ -1,4 +1,5 @@
 export * from './seal';
+import * as fs from 'fs';
 
 function hasMethod(obj, name) {
   const desc = Object.getOwnPropertyDescriptor(obj, name);
@@ -40,4 +41,28 @@ function iterateObject(obj, next) {
     });
     proto = Object.getPrototypeOf(proto);
   }
+}
+
+export function walk(dir, done) {
+  let results: string[] = [];
+  fs.readdir(dir, function(err, list) {
+    if (err) return done(err);
+    let i = 0;
+    (function next() {
+      let file = list[i++];
+      if (!file) return done(null, results);
+      file = dir + '/' + file;
+      fs.stat(file, function(e1, stat) {
+        if (stat && stat.isDirectory()) {
+          walk(file, function(e2, res) {
+            results = results.concat(res);
+            next();
+          });
+        } else {
+          results.push(file);
+          next();
+        }
+      });
+    })();
+  });
 }
