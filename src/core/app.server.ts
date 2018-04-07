@@ -126,7 +126,7 @@ export class AppServer {
         this.factory.config = this.config;
         this.factory.router = this.router;
         this.factory.notifier = this.notifier;
-        this.factory.setup();
+        await this.factory.setup();
         // Setup responser and streamer
         this.responser = new CallResponser(this.factory, this.AppClass);
         this.streamer = new CallStreamer(this.factory, this.AppClass);

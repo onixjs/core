@@ -1,5 +1,6 @@
 export * from './seal';
 import * as fs from 'fs';
+import {promisify} from 'util';
 
 function hasMethod(obj, name) {
   const desc = Object.getOwnPropertyDescriptor(obj, name);
@@ -42,7 +43,7 @@ function iterateObject(obj, next) {
     proto = Object.getPrototypeOf(proto);
   }
 }
-
+// Returns a list of files within a directory
 export function walk(dir, done) {
   let results: string[] = [];
   fs.readdir(dir, function(err, list) {
@@ -65,4 +66,16 @@ export function walk(dir, done) {
       });
     })();
   });
+}
+
+export const AsyncWalk = promisify(walk);
+
+export async function promiseSeries(stack, result: any = []) {
+  const next = stack.shift();
+  if (typeof next === 'function') {
+    result.push(await next());
+    return await promiseSeries(stack, result);
+  } else {
+    return result;
+  }
 }

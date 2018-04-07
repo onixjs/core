@@ -4,6 +4,8 @@ import {
   ReflectionKeys,
   IViewConfig,
   IViewHandler,
+  IRouteHandler,
+  IRouterParamConfig,
 } from '..';
 /**
  * @namespace Router
@@ -26,7 +28,11 @@ export namespace Router {
    * @description This function will decorate a GET Middleware
    */
   export function Get(path?: string) {
-    return function(target: object, method: string) {
+    return function(
+      target: object,
+      method: string,
+      descriptior: TypedPropertyDescriptor<IRouteHandler>,
+    ) {
       Reflect.defineMetadata(
         ReflectionKeys.MIDDLEWARE,
         <IMiddleware>{
@@ -46,7 +52,11 @@ export namespace Router {
    * @description This function will decorate a POST Middleware
    */
   export function Post(path?: string) {
-    return function(target: object, method: string) {
+    return function(
+      target: object,
+      method: string,
+      descriptior: TypedPropertyDescriptor<IRouteHandler>,
+    ) {
       Reflect.defineMetadata(
         ReflectionKeys.MIDDLEWARE,
         <IMiddleware>{
@@ -66,7 +76,11 @@ export namespace Router {
    * @description This function will decorate a PATCH Middleware
    */
   export function Patch(path?: string) {
-    return function(target: object, method: string) {
+    return function(
+      target: object,
+      method: string,
+      descriptior: TypedPropertyDescriptor<IRouteHandler>,
+    ) {
       Reflect.defineMetadata(
         ReflectionKeys.MIDDLEWARE,
         <IMiddleware>{
@@ -86,7 +100,11 @@ export namespace Router {
    * @description This function will decorate a PUT Middleware
    */
   export function Put(path?: string) {
-    return function(target: object, method: string) {
+    return function(
+      target: object,
+      method: string,
+      descriptior: TypedPropertyDescriptor<IRouteHandler>,
+    ) {
       Reflect.defineMetadata(
         ReflectionKeys.MIDDLEWARE,
         <IMiddleware>{
@@ -106,7 +124,11 @@ export namespace Router {
    * @description This function will decorate a HEAD Middleware
    */
   export function Head(path?: string) {
-    return function(target: object, method: string) {
+    return function(
+      target: object,
+      method: string,
+      descriptior: TypedPropertyDescriptor<IRouteHandler>,
+    ) {
       Reflect.defineMetadata(
         ReflectionKeys.MIDDLEWARE,
         <IMiddleware>{
@@ -126,7 +148,11 @@ export namespace Router {
    * @description This function will decorate a DELETE Middleware
    */
   export function Delete(path?: string) {
-    return function(target: object, method: string) {
+    return function(
+      target: object,
+      method: string,
+      descriptior: TypedPropertyDescriptor<IRouteHandler>,
+    ) {
       Reflect.defineMetadata(
         ReflectionKeys.MIDDLEWARE,
         <IMiddleware>{
@@ -146,7 +172,11 @@ export namespace Router {
    * @description This function will decorate a USE Middleware
    */
   export function Use(path?: string) {
-    return function(target: object, method: string) {
+    return function(
+      target: object,
+      method: string,
+      descriptior: TypedPropertyDescriptor<IRouteHandler>,
+    ) {
       Reflect.defineMetadata(
         ReflectionKeys.MIDDLEWARE,
         <IMiddleware>{
@@ -166,7 +196,11 @@ export namespace Router {
    * @description This function will decorate a ALL Middleware
    */
   export function All() {
-    return function(target: object, method: string) {
+    return function(
+      target: object,
+      method: string,
+      descriptior: TypedPropertyDescriptor<IRouteHandler>,
+    ) {
       Reflect.defineMetadata(
         ReflectionKeys.MIDDLEWARE,
         <IMiddleware>{
@@ -184,8 +218,12 @@ export namespace Router {
    * @license MIT
    * @description This function will decorate a PARAM Middleware
    */
-  export function Param(param: string) {
-    return function(target: object, method: string) {
+  export function Param(param: IRouterParamConfig) {
+    return function(
+      target: object,
+      method: string,
+      descriptior: TypedPropertyDescriptor<IRouteHandler>,
+    ) {
       Reflect.defineMetadata(
         ReflectionKeys.MIDDLEWARE,
         <IMiddleware>{
@@ -205,7 +243,11 @@ export namespace Router {
    * @description This function will decorate a STATIC Middleware
    */
   export function Static(path: string) {
-    return function(target: object, method: string) {
+    return function(
+      target: object,
+      method: string,
+      descriptior: TypedPropertyDescriptor<IViewHandler>,
+    ) {
       Reflect.defineMetadata(
         ReflectionKeys.MIDDLEWARE,
         <IMiddleware>{
