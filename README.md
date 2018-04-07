@@ -1,4 +1,4 @@
-OnixJS - Enterprise Grade FrameWork [![Beerpay](https://beerpay.io/onixjs/core/badge.svg?style=beer)](https://beerpay.io/onixjs/core) 
+OnixJS - Enterprise Grade Framework
 ================
 [![Coverage Status](https://coveralls.io/repos/github/onixjs/core/badge.svg?branch=master)](https://coveralls.io/github/onixjs/core?branch=master) [![Travis](https://img.shields.io/travis/onixjs/core.svg)](https://travis-ci.org/onixjs/core) [![npm (scoped)](https://img.shields.io/npm/v/@onixjs/core.svg)](http://npmjs.com/package/@onixjs/core) [![Beerpay](https://beerpay.io/onixjs/core/make-wish.svg?style=flat)](https://beerpay.io/onixjs/core?focus=wish)
 ![alt text](https://raw.githubusercontent.com/onixjs/core/master/misc/onix-splash.png "OnixJS")
@@ -16,7 +16,7 @@ $ npm install --save @onixjs/core
 ````
 ## Features
 
-The **[OnixJS] FrameWork** is an ***Enterprise Grade*** **Node.JS** platform that implements only **Industry Standards** and **Patterns** in order provide the best development experience possible:
+The **[OnixJS] Framework** is an ***Enterprise Grade*** **Node.JS** platform that implements only **Industry Standards** and **Patterns** in order provide the best development experience possible:
 
 - High-Availability
 - High-Performance
@@ -36,7 +36,7 @@ The **[OnixJS] FrameWork** is an ***Enterprise Grade*** **Node.JS** platform tha
 ## Documentation
 The following link will take you to the [OnixJS Documentation](https://github.com/onixjs/core/wiki)
 
-`DISCLAIMER: The wiki is a temporal documentation created to start guiding developers into the [OnixJS] World. An Official Web and More Complete Documentation Sites are currently being developed.`
+>DISCLAIMER: The wiki is a temporal documentation created to start guiding developers into the [OnixJS] World. An Official Web and More Complete Documentation Sites are currently being developed.
 
 **Examples:** [https://github.com/onixjs/examples](https://github.com/onixjs/examples)
 
@@ -47,7 +47,7 @@ The **[OnixJS] FrameWork** is an ***Enterprise Grade*** **Node.JS** platform tha
 
 
 - **Slightly Opinionated**: Though [OnixJS] provide with a business logic structure based on *SOA*, *MSA* and it does specify how to communicate your services or clients, *we do empower you* to decide which *Front-End Framework*, *ORM* or even an *Server Side Renderer* (Template Engine) to install. By using any of our provided [Factories], you'll be free to make most of the important decisions.
-- **Stability**: We strongly believe that providing a highly featured, tested or covered framework is great but not enough. We also believe that staging or deploying a project now or in a year MUSTN'T be affected by the framework or any of its dependencies, being that the reason of why we decided to use the lowest amount of dependencies possible. 
+- **Stability**: We strongly believe that providing a highly featured, tested or covered platform might be great but definitely not enough. We also believe that staging or deploying a project now or in a year MUSTN'T be affected by the Framework or any of its dependencies, being that the reason of why we decided to use the lowest amount of dependencies possible. 
 - **High-Availability**: Either you choose Monolithic *SOA* or *MSA*, your services will run independently in separated processes. While implementing the right patterns and infrastructure, any failure on either of your services won't block or disable access to users or other services.
 - **High-Performance**: [OnixJS] provides with a really small footprint, we don't really add unnecessary and unused features, instead we provide you with artifacts all based on established design patterns for you to build projects with ease, as well as providing ways to flawlessly communicate services and clients. 
 - **Security**: [OnixJS] provides with a fully [OIDC] featured *Single Sign On* IdP, so you can start avoiding expenses on authentication and authorization issues due far simplistic auth implementations not suited for enterprise grade projects.

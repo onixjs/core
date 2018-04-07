@@ -302,14 +302,14 @@ export class AppFactory {
    * when registering different type of route features.
    */
   async routeWrapper(instance, method, req, res, next) {
-    console.log('RESOLVING ENDPOINT: ', req.url);
     // Potentially register LifeCycles in here.
     const result = await instance[method](req, res);
-    console.log('PASSING SOME RESULT TO THE ROUTER', result);
     // If the method returned a value, otherwise they might response their selves
     if (result) {
       // Send result to the requester
       res.end(Utils.IsJsonString(result) ? JSON.stringify(result) : result);
+    } else {
+      next();
     }
   }
   /**
