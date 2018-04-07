@@ -7,6 +7,7 @@ import {
   IPropertyConfig,
   IModelConfig,
   IViewRenderer,
+  promiseSeries,
 } from '..';
 /**
  * @class Injector
@@ -61,78 +62,86 @@ export class Injector {
    * won't create an instance, eventhough the class is installed
    * within the module configuration.
    */
-  public inject(Class: Constructor, instance, config: IModuleConfig) {
-    // Get a list of properties from this object.
-    getObjectProperties(instance).map(prop => {
-      // Verify the property has injectable config
-      const injectable: {
-        type: string;
-        Class: Constructor;
-      } = Reflect.getMetadata(ReflectionKeys.INJECT_REQUEST, instance, prop);
-      // Validate now
-      if (!injectable || !injectable.Class) return; // No injectable requestify that injectable class is installed within this module
-      if (
-        config.models.map(s => s.name).indexOf(injectable.Class.name) < 0 &&
-        config.renderers.map(s => s.name).indexOf(injectable.Class.name) < 0 &&
-        config.services.map(s => s.name).indexOf(injectable.Class.name) < 0 &&
-        injectable.Class.name !== 'AppNotifier'
-      ) {
-        throw new Error(
-          `ONIXJS CORE: Unable to inject an unregisted class "${
-            injectable.Class.name
-          }", please install it within the @Module "${
-            Class.name
-          }" configuration`,
-        );
-      }
-      // Verify if injectable request is a model and is requested
-      switch (injectable.type) {
-        case 'model':
-          if (
-            Reflect.hasMetadata(
-              ReflectionKeys.INJECTABLE_MODEL,
-              injectable.Class.prototype,
+  public async inject(Class: Constructor, instance, config: IModuleConfig) {
+    // Create Serial Injection
+    await promiseSeries(
+      getObjectProperties(instance).map(prop => async () => {
+        // Verify the property has injectable config
+        const injectable: {
+          type: string;
+          Class: Constructor;
+        } = Reflect.getMetadata(ReflectionKeys.INJECT_REQUEST, instance, prop);
+        // Validate now
+        if (!injectable || !injectable.Class) return; // No injectable requestify that injectable class is installed within this module
+        if (
+          config.models.map(s => s.name).indexOf(injectable.Class.name) < 0 &&
+          config.renderers.map(s => s.name).indexOf(injectable.Class.name) <
+            0 &&
+          config.services.map(s => s.name).indexOf(injectable.Class.name) < 0 &&
+          injectable.Class.name !== 'AppNotifier'
+        ) {
+          throw new Error(
+            `ONIXJS CORE: Unable to inject an unregisted class "${
+              injectable.Class.name
+            }", please install it within the @Module "${
+              Class.name
+            }" configuration`,
+          );
+        }
+        // Verify if injectable request is a model and is requested
+        switch (injectable.type) {
+          case 'model':
+            if (
+              Reflect.hasMetadata(
+                ReflectionKeys.INJECTABLE_MODEL,
+                injectable.Class.prototype,
+              )
+            ) {
+              const model = await this.injectModel(injectable.Class, config);
+              Object.defineProperty(instance, prop, {
+                value: model,
+                writable: false,
+              });
+            }
+            break;
+          case 'service':
+            if (
+              Reflect.hasMetadata(
+                ReflectionKeys.INJECTABLE_SERVICE,
+                injectable.Class.prototype,
+              )
+            ) {
+              const service = await this.injectService(
+                injectable.Class,
+                config,
+              );
+              Object.defineProperty(instance, prop, {
+                value: service,
+                writable: false,
+              });
+            }
+            break;
+          case 'renderer':
+            if (
+              Reflect.hasMetadata(
+                ReflectionKeys.INJECTABLE_RENDERER,
+                injectable.Class.prototype,
+              )
             )
-          ) {
-            const model = this.injectModel(injectable.Class, config);
+              Object.defineProperty(instance, prop, {
+                value: this.injectRenderer(injectable.Class, config),
+                writable: false,
+              });
+            break;
+          case 'notifier':
             Object.defineProperty(instance, prop, {
-              value: model,
+              value: config.notifier,
               writable: false,
             });
-          }
-          break;
-        case 'service':
-          if (
-            Reflect.hasMetadata(
-              ReflectionKeys.INJECTABLE_SERVICE,
-              injectable.Class.prototype,
-            )
-          )
-            Object.defineProperty(instance, prop, {
-              value: this.injectService(injectable.Class, config),
-              writable: false,
-            });
-          break;
-        case 'renderer':
-          if (
-            Reflect.hasMetadata(
-              ReflectionKeys.INJECTABLE_RENDERER,
-              injectable.Class.prototype,
-            )
-          )
-            Object.defineProperty(instance, prop, {
-              value: this.injectRenderer(injectable.Class, config),
-              writable: false,
-            });
-          break;
-        case 'notifier':
-          Object.defineProperty(instance, prop, {
-            value: config.notifier,
-            writable: false,
-          });
-          break;
-      }
-    });
+            break;
+        }
+      }),
+    );
   }
   /**
    * @method injectRenderer
@@ -160,7 +169,7 @@ export class Injector {
    * @param config
    * This method will recursively setup every service, it will also
    */
-  private injectModel(Model: Constructor, config: IModuleConfig) {
+  private async injectModel(Model: Constructor, config: IModuleConfig) {
     // Singleton model, no need for more instances :)
     if (this.has(Model.name)) {
       return this.get(Model.name);
@@ -176,7 +185,7 @@ export class Injector {
       datasource = this.get(modelConfig.datasource.name);
     } else {
       datasource = new modelConfig.datasource();
-      datasource.connect();
+      await datasource.connect();
       this.set(modelConfig.datasource.name, datasource);
     }
     // Model schema reference, will be parsed from instance decoration
@@ -209,7 +218,7 @@ export class Injector {
    * @param config
    * This method will recursively setup every service, it will also
    */
-  private injectService(Service: Constructor, config: IModuleConfig) {
+  private async injectService(Service: Constructor, config: IModuleConfig) {
     // Singleton model, no need for more instances :)
     if (this.has(Service.name)) {
       return this.get(Service.name);
@@ -217,7 +226,7 @@ export class Injector {
     // Create new service instance
     const instance: Constructor = new Service();
     // Inject whatever this service has requested to be injected (Wingardium Levioza!)
-    this.inject(Service, instance, config);
+    await this.inject(Service, instance, config);
     // Persist on Injector (We won't process this service again)
     this.set(Service.name, instance);
     // Return Service instance

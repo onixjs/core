@@ -11,6 +11,7 @@ import {
   Service,
   Model,
   IMiddleware,
+  RouterTypes,
 } from '../src';
 import {Router} from '../src/decorators/onix.router';
 import {RPC} from '../src/decorators/rpc';
@@ -247,4 +248,49 @@ test('@Stream Method should be decorated.', t => {
     'myStream',
   );
   t.true(enabled);
+});
+
+// Test Router.All decorator
+test('@Router.All Method should be decorated.', t => {
+  class MyClass {
+    @Router.All()
+    myAll() {}
+  }
+  const instance: MyClass = new MyClass();
+  const enabled: IMiddleware = Reflect.getMetadata(
+    ReflectionKeys.MIDDLEWARE,
+    instance,
+    'myAll',
+  );
+  t.is(enabled.type, RouterTypes.ALL);
+});
+
+// Test Router.Use decorator
+test('@Router.Use Method should be decorated.', t => {
+  class MyClass {
+    @Router.Use()
+    myUse() {}
+  }
+  const instance: MyClass = new MyClass();
+  const enabled: IMiddleware = Reflect.getMetadata(
+    ReflectionKeys.MIDDLEWARE,
+    instance,
+    'myUse',
+  );
+  t.is(enabled.type, RouterTypes.USE);
+});
+
+// Test Router.Head decorator
+test('@Router.Head Method should be decorated.', t => {
+  class MyClass {
+    @Router.Head()
+    myHead() {}
+  }
+  const instance: MyClass = new MyClass();
+  const enabled: IMiddleware = Reflect.getMetadata(
+    ReflectionKeys.MIDDLEWARE,
+    instance,
+    'myHead',
+  );
+  t.is(enabled.type, RouterTypes.HTTP);
 });

@@ -49,14 +49,13 @@ export class HostBoot {
       Array.isArray(bc.apps) &&
       bc.apps.length > 0
     ) {
-      this.host = new OnixJS(hc);
+      this.host = new OnixJS(this.hc);
     } else {
       throw new Error('OnixJS: No apps to be loaded');
     }
   }
 
   async run() {
-    this.host = new OnixJS(this.hc);
     this.bc.apps.forEach(async app => await this.host.load(app));
     await this.host.start();
   }

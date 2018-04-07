@@ -1,7 +1,8 @@
 import {test} from 'ava';
-import {AppServer} from '../src/core/app.server';
 import {Application} from '../src/core/app';
 import {AppFactory} from '../src/core/app.factory';
+import {AppNotifier} from '../src/core/app.notifier';
+import {AppServer} from '../src/core/app.server';
 import {
   OnixJS,
   IRequest,
@@ -28,7 +29,6 @@ import {
   Constructor,
   Router,
 } from '../src';
-import {AppNotifier} from '../src/core/app.notifier';
 import {ClientConnection} from '../src/core/connection';
 import {LifeCycle} from '../src/core/lifecycle';
 import {Injector} from '../src/core/injector';
@@ -40,15 +40,16 @@ import * as dot from 'dot';
 import {CallStreamer} from '../src/core/call.streamer';
 import {NodeJS} from '@onixjs/sdk/dist/core/node.adapters';
 import {Utils} from '@onixjs/sdk/dist/utils';
-import {Mongoose, Schema, Model as MongooseModel} from 'mongoose';
+import {Mongoose, Schema} from 'mongoose';
 const cwd = path.join(process.cwd(), 'dist', 'test');
-// Test AppFactory
+//* Test AppFactory
 test('Core: AppFactory creates an Application.', async t => {
   class MyApp extends Application {}
   const instance: AppFactory = new AppFactory(MyApp);
   instance.config = {modules: []};
   instance.notifier = new AppNotifier();
-  instance.setup();
+  const result = await instance.setup();
+  console.log('A RESULT: ', result);
   t.truthy(instance.app.start);
   t.truthy(instance.app.stop);
   t.truthy(instance.app.isAlive);
@@ -57,21 +58,18 @@ test('Core: AppFactory creates an Application.', async t => {
 
 // Test AppFactory
 test('Core: AppFactory fails on installing invalid module.', async t => {
-  const error = await t.throws(
-    new Promise(() => {
-      class MyModule {}
-      class MyApp extends Application {}
-      const instance: AppFactory = new AppFactory(MyApp);
-      instance.config = {modules: [MyModule]};
-      instance.notifier = new AppNotifier();
-      instance.setup();
-    }),
-  );
+  class MyModule {}
+  class MyApp extends Application {}
+  const instance: AppFactory = new AppFactory(MyApp);
+  instance.config = {modules: [MyModule]};
+  instance.notifier = new AppNotifier();
+  const error = await t.throws(instance.setup());
   t.is(
     error.message,
     'OnixJS: Invalid Module "MyModule", it must provide a module config ({ models: [], services: [], components: [] })',
   );
 });
+
 // OnixJS loads duplicated apps
 test('Core: OnixJS loads creates duplicated Application.', async t => {
   const onix: OnixJS = new OnixJS({
@@ -134,7 +132,7 @@ test('Core: OnixJS schema builder.', async t => {
   const instance: AppFactory = new AppFactory(MyApp);
   instance.config = {modules: [MyModule]};
   instance.notifier = new AppNotifier();
-  instance.setup();
+  await instance.setup();
   const schema = instance.schema();
   t.truthy(schema.modules.MyModule);
 });
@@ -157,7 +155,7 @@ test('Core: CallResponser invalid call.', async t => {
   const factory: AppFactory = new AppFactory(MyApp);
   factory.config = {network: {disabled: true}, modules: [MyModule]};
   factory.notifier = new AppNotifier();
-  factory.setup();
+  await factory.setup();
   const responser: CallResponser = new CallResponser(factory, MyApp);
   const error = await t.throws(
     responser.process({
@@ -190,7 +188,7 @@ test('Core: CallResponser invalid call.', async t => {
   const factory: AppFactory = new AppFactory(MyApp);
   factory.config = {network: {disabled: true}, modules: [MyModule]};
   factory.notifier = new AppNotifier();
-  factory.setup();
+  await factory.setup();
   const responser: CallResponser = new CallResponser(factory, MyApp);
   const error = await t.throws(
     responser.process({
@@ -223,7 +221,7 @@ test('Core: CallResponser invalid call.', async t => {
   const factory: AppFactory = new AppFactory(MyApp);
   factory.config = {network: {disabled: true}, modules: [MyModule]};
   factory.notifier = new AppNotifier();
-  factory.setup();
+  await factory.setup();
   const responser: CallResponser = new CallResponser(factory, MyApp);
   const error = await t.throws(
     responser.process({
@@ -262,7 +260,7 @@ test('Core: CallResponser Hooks.', async t => {
   const factory: AppFactory = new AppFactory(MyApp);
   factory.config = {network: {disabled: true}, modules: [MyModule]};
   factory.notifier = new AppNotifier();
-  factory.setup();
+  await factory.setup();
   const responser: CallResponser = new CallResponser(factory, MyApp);
   const result = await responser.process({
     uuid: '1',
@@ -304,7 +302,7 @@ test('Core: CallResponser Hooks.', async t => {
   const factory: AppFactory = new AppFactory(MyApp);
   factory.config = {network: {disabled: true}, modules: [MyModule]};
   factory.notifier = new AppNotifier();
-  factory.setup();
+  await factory.setup();
   const streamer: CallStreamer = new CallStreamer(factory, MyApp);
   streamer.register(
     {
@@ -340,7 +338,7 @@ test('Core: CallStreamer invalid call.', async t => {
   const factory: AppFactory = new AppFactory(MyApp);
   factory.config = {network: {disabled: true}, modules: [MyModule]};
   factory.notifier = new AppNotifier();
-  factory.setup();
+  await factory.setup();
   const streamer: CallStreamer = new CallStreamer(factory, MyApp);
   streamer.register(
     {
@@ -443,7 +441,7 @@ test('Core: Connection.', async t => {
   const factory: AppFactory = new AppFactory(MyApp);
   factory.config = {network: {disabled: true}, modules: [MyModule]};
   factory.notifier = new AppNotifier();
-  factory.setup();
+  await factory.setup();
   // Create websocket server
   const server = new WebSocket.Server({host: '127.0.0.1', port: 9090}, () => {
     const responser = new CallResponser(factory, MyApp);
@@ -502,13 +500,14 @@ test('Core: Connection.', async t => {
 });
 // Test host boot
 test('Core: host boot.', async t => {
-  const host: HostBoot = new HostBoot(
+  const instance: HostBoot = new HostBoot(
     {
       apps: ['TodoApp@todo.app:8076'],
     },
     {cwd},
   );
-  await t.notThrows(host.run());
+  await t.notThrows(instance.run());
+  await instance.host.stop();
 });
 // Test host boot throws
 test('Core: host boot throws.', async t => {
@@ -548,7 +547,7 @@ test('Core: Injector.', async t => {
   }
   // create component instance
   const instance: MyComponent = new MyComponent();
-  injector.inject(MyComponent, instance, {
+  await injector.inject(MyComponent, instance, {
     models: [],
     renderers: [],
     services: [MyService],
@@ -574,17 +573,13 @@ test('Core: Inject Model and Services.', async t => {
   @DataSource()
   class MongooseDatasource implements IDataSource {
     private mongoose: Mongoose = new Mongoose();
-    connect() {
-      this.mongoose
-        .connect(
-          'mongodb://lb-sdk-test:lb-sdk-test@ds153400.mlab.com:53400/heroku_pmkjxjwz',
-        )
-        .then(() => console.log('Mongoose Connected'), console.error);
+    async connect() {
+      return this.mongoose.connect(
+        'mongodb://lb-sdk-test:lb-sdk-test@ds153400.mlab.com:53400/heroku_pmkjxjwz',
+      );
     }
-    disconnect() {
-      this.mongoose
-        .disconnect()
-        .then(() => console.log('Mongoose Connected'), console.error);
+    async disconnect() {
+      return this.mongoose.disconnect();
     }
     register(Class: Constructor, ins: IModel, schema: Schema): any {
       return this.mongoose.model(Class.name, schema);
@@ -598,7 +593,7 @@ test('Core: Inject Model and Services.', async t => {
     _id?: string;
     @Property(String) text: String;
   }
-  // Model
+  //Model
   @Model({
     datasource: MongooseDatasource,
   })
@@ -615,16 +610,16 @@ test('Core: Inject Model and Services.', async t => {
   }
   // Component
   class TodoComponent {
-    @Inject.Model(TodoModel) public model: MongooseModel<any>;
-    @Inject.Model(Todo2Model) public model2: MongooseModel<any>;
-    @Inject.Model(Todo2Model) public model3: MongooseModel<any>;
+    @Inject.Model(TodoModel) public model;
+    @Inject.Model(Todo2Model) public model2;
+    @Inject.Model(Todo2Model) public model3;
     @Inject.Service(TodoService) public service: TodoService;
     @Inject.Service(TodoService) public service2: TodoService;
   }
   // Inject Model and Service
   const injector: Injector = new Injector();
   const instance: TodoComponent = new TodoComponent();
-  injector.inject(TodoComponent, instance, {
+  await injector.inject(TodoComponent, instance, {
     components: [],
     renderers: [],
     models: [TodoModel, Todo2Model],
@@ -638,7 +633,6 @@ test('Core: Inject Model and Services.', async t => {
   t.is(result.text, criteria);
 });
 // Test Inject Throws Uninstalled Injectable
-/*
 test('Core: Inject Throws Uninstalled Injectable.', async t => {
   // DataSource
   @DataSource()
@@ -666,7 +660,7 @@ test('Core: Inject Throws Uninstalled Injectable.', async t => {
   }
   // Component
   class TodoComponent {
-    @Inject.Model(TodoModel) public model: MongooseModel<any>;
+    @Inject.Model(TodoModel) public model;
   }
   // Inject Model and Service
   const injector: Injector = new Injector();
@@ -684,7 +678,7 @@ test('Core: Inject Throws Uninstalled Injectable.', async t => {
     error.message,
     'ONIXJS CORE: Unable to inject an unregisted class "TodoModel", please install it within the @Module "TodoComponent" configuration',
   );
-});*/
+});
 // Test Main Life Cycle
 test('Core: main lifecycle.', async t => {
   const result: boolean = true;
@@ -742,6 +736,180 @@ test('Core: main lifecycle.', async t => {
   t.true(r2);
   t.true(r3);
 });
+//Test Component Router REST Endpoint
+test('Core: Component Router REST Endpoint.', async t => {
+  // Component
+  class StaticComponent {
+    @Router.Get('/test/get')
+    async test(req, res) {
+      res.end(JSON.stringify({HELLO: 'WORLD'}));
+    }
+  }
+  // Declare Module
+  @Module({
+    models: [],
+    renderers: [],
+    services: [],
+    components: [StaticComponent],
+  })
+  class StaticModule {}
+  // Declare Application
+  class MyApp extends Application {}
+  // Start App Factory
+  const server: AppServer = new AppServer(MyApp, {
+    port: 7950,
+    modules: [StaticModule],
+  });
+  // Create Application
+  await server.operation({
+    uuid: 'dummy',
+    type: OperationType.APP_CREATE,
+    message: '',
+  });
+  // Start Application
+  await server.operation({
+    uuid: 'dummy',
+    type: OperationType.APP_START,
+    message: '',
+  });
+  // Create HTTP Client
+  const client: NodeJS.HTTP = new NodeJS.HTTP();
+  // Call the decorated JSON
+  // Call the decorated JSON
+  const result: any = <any>await client.get('http://127.0.0.1:7950/test/get');
+  // Test Service
+  t.is(result.HELLO, 'WORLD');
+  // Start Application
+  await server.operation({
+    uuid: 'dummy',
+    type: OperationType.APP_STOP,
+    message: '',
+  });
+});
+//Test Component Router Param Hook
+test('Core: Component Router Param Hook.', async t => {
+  // Component
+  class StaticComponent {
+    private users = [
+      {
+        id: 0,
+        text: 'Foo',
+      },
+      {
+        id: 1,
+        text: 'Bar',
+      },
+    ];
+
+    @Router.Param({name: 'user_id', as: 'user'})
+    async param(req: OnixHTTPRequest, user_id) {
+      return this.users[user_id];
+    }
+
+    @Router.Get('/test/:user_id/params')
+    async test(req, res) {
+      res.end(JSON.stringify(req.user));
+    }
+  }
+  // Declare Module
+  @Module({
+    models: [],
+    renderers: [],
+    services: [],
+    components: [StaticComponent],
+  })
+  class StaticModule {}
+  // Declare Application
+  class MyApp extends Application {}
+  // Start App Factory
+  const server: AppServer = new AppServer(MyApp, {
+    port: 7951,
+    modules: [StaticModule],
+  });
+  // Create Application
+  await server.operation({
+    uuid: 'dummy',
+    type: OperationType.APP_CREATE,
+    message: '',
+  });
+  // Start Application
+  await server.operation({
+    uuid: 'dummy',
+    type: OperationType.APP_START,
+    message: '',
+  });
+  // Create HTTP Client
+  const client: NodeJS.HTTP = new NodeJS.HTTP();
+  // Call the decorated JSON
+  // Call the decorated JSON
+  const resultA: any = <any>await client.get(
+    'http://127.0.0.1:7951/test/0/params',
+  );
+  const resultB: any = <any>await client.get(
+    'http://127.0.0.1:7951/test/1/params',
+  );
+  // Test Service
+  t.is(resultA.text, 'Foo');
+  t.is(resultB.text, 'Bar');
+  // Start Application
+  await server.operation({
+    uuid: 'dummy',
+    type: OperationType.APP_STOP,
+    message: '',
+  });
+});
+//Test Component Static
+test('Core: Component Static.', async t => {
+  // Component
+  class StaticComponent {
+    @Router.Static('test/static.json')
+    async test(req: OnixHTTPRequest, buffer: Buffer) {
+      return buffer.toString();
+    }
+  }
+  // Declare Module
+  @Module({
+    models: [],
+    renderers: [],
+    services: [],
+    components: [StaticComponent],
+  })
+  class StaticModule {}
+  // Declare Application
+  class MyApp extends Application {}
+  // Start App Factory
+  const server: AppServer = new AppServer(MyApp, {
+    port: 6950,
+    modules: [StaticModule],
+  });
+  // Create Application
+  await server.operation({
+    uuid: 'dummy',
+    type: OperationType.APP_CREATE,
+    message: '',
+  });
+  // Start Application
+  await server.operation({
+    uuid: 'dummy',
+    type: OperationType.APP_START,
+    message: '',
+  });
+  // Create HTTP Client
+  const client: NodeJS.HTTP = new NodeJS.HTTP();
+  // Call the decorated JSON
+  // Call the decorated JSON
+  const result: String = <String>await client.get(
+    'http://127.0.0.1:6950/test/static.json',
+  );
+  // Test Service
+  t.is(JSON.parse(result.toString()).hello, 'world');
+  // Start Application
+  await server.operation({
+    uuid: 'dummy',
+    type: OperationType.APP_STOP,
+    message: '',
+  });
+});
 //Test Component View
 test('Core: Component View.', async t => {
   // Component
@@ -750,8 +918,7 @@ test('Core: Component View.', async t => {
       endpoint: '/my-static',
       file: 'test/static.json',
     })
-    async test(req: OnixHTTPRequest, buffer: Buffer): Promise<string> {
-      console.log('STATIC!!!!', buffer.toString());
+    async test(req: OnixHTTPRequest, buffer: Buffer) {
       return buffer.toString();
     }
   }
@@ -798,6 +965,114 @@ test('Core: Component View.', async t => {
     message: '',
   });
 });
+//Test Component View Immutable
+test('Core: Component View Immutable.', async t => {
+  // Component
+  class StaticComponent {
+    @Router.View({
+      endpoint: '/my-static',
+      file: 'test/static.json',
+    })
+    async test(req: OnixHTTPRequest, buffer: Buffer) {
+      return buffer.toString();
+    }
+  }
+  // Declare Module
+  @Module({
+    models: [],
+    renderers: [],
+    services: [],
+    components: [StaticComponent],
+  })
+  class StaticModule {}
+  // Declare Application
+  class MyApp extends Application {}
+  // Start App Factory
+  const server: AppServer = new AppServer(MyApp, {
+    port: 6150,
+    modules: [StaticModule],
+  });
+  // Create Application
+  await server.operation({
+    uuid: 'dummy',
+    type: OperationType.APP_CREATE,
+    message: '',
+  });
+  // Start Application
+  await server.operation({
+    uuid: 'dummy',
+    type: OperationType.APP_START,
+    message: '',
+  });
+  // Create HTTP Client
+  const client: NodeJS.HTTP = new NodeJS.HTTP();
+  // Call the decorated JSON
+  // Call the decorated JSON
+  const result: String = <String>await client.get(
+    'http://127.0.0.1:6150/my-static',
+  );
+  // Test Service
+  t.is(JSON.parse(result.toString()).hello, 'world');
+  // Start Application
+  await server.operation({
+    uuid: 'dummy',
+    type: OperationType.APP_STOP,
+    message: '',
+  });
+});
+//Test Component View FilePath Not Exist
+test('Core: Component View FilePath Not Exist.', async t => {
+  // Component
+  class StaticComponent {
+    @Router.View({
+      endpoint: '/my-static',
+      file: 'test/some.missing.file.json',
+    })
+    async test(req: OnixHTTPRequest, buffer: Buffer) {
+      return buffer.toString();
+    }
+  }
+  // Declare Module
+  @Module({
+    models: [],
+    renderers: [],
+    services: [],
+    components: [StaticComponent],
+  })
+  class StaticModule {}
+  // Declare Application
+  class MyApp extends Application {}
+  // Start App Factory
+  const server: AppServer = new AppServer(MyApp, {
+    port: 6350,
+    modules: [StaticModule],
+  });
+  // Create Application
+  await server.operation({
+    uuid: 'dummy',
+    type: OperationType.APP_CREATE,
+    message: '',
+  });
+  // Start Application
+  await server.operation({
+    uuid: 'dummy',
+    type: OperationType.APP_START,
+    message: '',
+  });
+  // Create HTTP Client
+  const client: NodeJS.HTTP = new NodeJS.HTTP();
+  // Call the decorated JSON
+  const result: any = <any>await client.get('http://127.0.0.1:6350/my-static');
+  // Test Service
+  t.is(result.code, 404);
+  t.is(result.message, 'Oops!!! something went wrong.');
+  // Start Application
+  await server.operation({
+    uuid: 'dummy',
+    type: OperationType.APP_STOP,
+    message: '',
+  });
+});
 //TestView Renderer.
 test('Core: View Renderer.', async t => {
   // Declare renderer
@@ -818,8 +1093,7 @@ test('Core: View Renderer.', async t => {
       endpoint: '/my-dynamic',
       file: 'test/dynamic.json',
     })
-    async test(req: OnixHTTPRequest, buffer: Buffer): Promise<string> {
-      console.log('DYNAMIC!!!!', buffer.toString());
+    async test(req: OnixHTTPRequest, buffer: Buffer) {
       return this.renderer.process(buffer.toString(), {
         key: 'HELLO',
         value: 'WORLD',
@@ -890,7 +1164,7 @@ test('Core: Notifier.', async t => {
   // Start App Factory
   const injector: Injector = new Injector();
   // Inject Notifier
-  injector.inject(NotifierComponent, instance, {
+  await injector.inject(NotifierComponent, instance, {
     renderers: [],
     components: [],
     services: [],

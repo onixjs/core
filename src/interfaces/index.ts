@@ -253,7 +253,7 @@ export interface IComponentConfig {
 }
 
 export interface IMiddleware extends IViewConfig {
-  param?: string;
+  param?: IRouterParamConfig;
   method: string;
   type: RouterTypes;
 }
@@ -348,6 +348,11 @@ export interface ErrorResponse {
 
 export interface IOnixStatus {}
 
+export interface IRouterParamConfig {
+  name: string;
+  as: string;
+}
+
 export interface IView {
   file: string;
   handler: IViewHandler;
@@ -355,6 +360,14 @@ export interface IView {
 
 export interface IViewHandler {
   (req: OnixHTTPRequest, buffer: Buffer): Promise<string>;
+}
+
+export interface IRouteHandler {
+  (req: OnixHTTPRequest, res: http.ServerResponse): Promise<any> | void;
+}
+
+export interface IRouteParamHandler {
+  (req: OnixHTTPRequest, param): Promise<any> | void;
 }
 
 export interface IViewDirectory {

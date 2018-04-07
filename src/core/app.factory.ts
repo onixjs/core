@@ -11,12 +11,13 @@ import {
   RouterTypes,
 } from '../interfaces';
 import {Injector} from '../core';
-import {getObjectMethods, walk} from '../utils';
+import {getObjectMethods, promiseSeries, AsyncWalk} from '../utils';
 import {AppNotifier, IMiddleware} from '..';
 import * as Router from 'router';
 import * as fs from 'fs';
 import * as path from 'path';
 import {Utils} from '@onixjs/sdk/dist/utils';
+import {promisify} from 'util';
 /**
  * @class AppFactory
  * @author Jonathan Casarrubias
@@ -96,37 +97,45 @@ export class AppFactory {
    * application. It will internally call for methods to setup models, services and
    * components.
    */
-  public setup() {
+  public async setup() {
     // Iterate list of module classes
-    this.config.modules.forEach((Module: Constructor) => {
-      // Verify this is not a duplicated module
-      if (this.app.modules[Module.name]) return;
-      // Create a injection scope for this module
-      this.scopes[Module.name] = new Injector();
-      // Then create a module instance
-      this.app.modules[Module.name] = new Module();
-      // Get the module config from the metadata
-      const config: IModuleConfig = Reflect.getMetadata(
-        ReflectionKeys.MODULE_CONFIG,
-        this.app.modules[Module.name],
-      );
-      // No config... Bad module then
-      if (!config) {
-        throw new Error(
-          `OnixJS: Invalid Module "${
-            Module.name
-          }", it must provide a module config ({ models: [], services: [], components: [] })`,
+    return promiseSeries(
+      this.config.modules.map((Module: Constructor) => async () => {
+        //this.config.modules.forEach(async (Module: Constructor) => {
+        console.log('Module Name: ', Module.name);
+        // Verify this is not a duplicated module
+        if (this.app.modules[Module.name]) return;
+        // Create a injection scope for this module
+        this.scopes[Module.name] = new Injector();
+        // Then create a module instance
+        this.app.modules[Module.name] = new Module();
+        // Get the module config from the metadata
+        const config: IModuleConfig = Reflect.getMetadata(
+          ReflectionKeys.MODULE_CONFIG,
+          this.app.modules[Module.name],
         );
-      }
-      // Setup module components
-      if (config && config.components)
-        this.setupComponents(config, this.app.modules[Module.name], Module);
-      if (process.send)
-        process.send({
-          type: OperationType.APP_CREATE_RESPONSE,
-          message: this.schema(),
-        });
-    });
+        // No config... Bad module then
+        if (!config) {
+          throw new Error(
+            `OnixJS: Invalid Module "${
+              Module.name
+            }", it must provide a module config ({ models: [], services: [], components: [] })`,
+          );
+        }
+        // Setup module components
+        if (config && config.components)
+          await this.setupComponents(
+            config,
+            this.app.modules[Module.name],
+            Module,
+          );
+        if (process.send)
+          process.send({
+            type: OperationType.APP_CREATE_RESPONSE,
+            message: this.schema(),
+          });
+      }),
+    );
   }
   /**
    * @method setupComponents
@@ -138,39 +147,46 @@ export class AppFactory {
    * These will be singleton instances, so once instantiated, the same
    * instance will be injected for each component.
    */
-  setupComponents(config: IModuleConfig, moduleInstance, Module: Constructor) {
-    // Create Components instances
-    config.components.forEach((Component: new () => IComponent) => {
-      // If component does not exist
-      if (!moduleInstance[Component.name]) {
-        // Create a new component instance
-        moduleInstance[Component.name] = new Component();
-        // Get Component Metadata
-        const componentConfig: IComponentConfig = Reflect.getMetadata(
-          ReflectionKeys.COMPONENT_CONFIG,
-          moduleInstance[Component.name],
-        );
-        // Now recursively inject models and services within this component
-        this.scopes[Module.name].inject(
-          Component,
-          moduleInstance[Component.name],
-          Object.assign(config, {notifier: this.notifier}),
-        );
-        // Finally configure component http routing (If network enabled)
-        if (
-          !this.config.network ||
-          (this.config.network && !this.config.network!.disabled)
-        ) {
-          // Get the right route base path
-          const componentRouter: Router =
-            componentConfig && componentConfig.route
-              ? this.router.route(componentConfig.route)
-              : this.router;
-          // Keep routin'
-          this.routing(moduleInstance[Component.name], componentRouter);
+  async setupComponents(
+    config: IModuleConfig,
+    moduleInstance,
+    Module: Constructor,
+  ) {
+    // Series of Promises
+    await promiseSeries(
+      config.components.map((Component: new () => IComponent) => async () => {
+        console.log('Component Name: ', Component.name);
+        // If component does not exist
+        if (!moduleInstance[Component.name]) {
+          // Create a new component instance
+          moduleInstance[Component.name] = new Component();
+          // Get Component Metadata
+          const componentConfig: IComponentConfig = Reflect.getMetadata(
+            ReflectionKeys.COMPONENT_CONFIG,
+            moduleInstance[Component.name],
+          );
+          // Now recursively inject models and services within this component
+          await this.scopes[Module.name].inject(
+            Component,
+            moduleInstance[Component.name],
+            Object.assign(config, {notifier: this.notifier}),
+          );
+          // Finally configure component http routing (If network enabled)
+          if (
+            !this.config.network ||
+            (this.config.network && !this.config.network!.disabled)
+          ) {
+            // Get the right route base path
+            const componentRouter: Router =
+              componentConfig && componentConfig.route
+                ? this.router.route(componentConfig.route)
+                : this.router;
+            // Keep routin'
+            this.routing(moduleInstance[Component.name], componentRouter);
+          }
         }
-      }
-    });
+      }),
+    );
   }
   /**
    * @method routing
@@ -201,48 +217,62 @@ export class AppFactory {
         switch (config.type) {
           case RouterTypes.HTTP:
           case RouterTypes.USE:
-          case RouterTypes.PARAM:
           case RouterTypes.ALL:
             if (config.endpoint) {
               this.router[config.method.toLowerCase()](
                 config.endpoint,
-                (req, res, next) =>
-                  this.routeWrapper(instance, method, req, res, next),
+                async (req, res, next) =>
+                  await this.routeWrapper(instance, method, req, res, next),
               );
             } else {
-              this.router[config.method.toLowerCase()]((req, res, next) =>
-                this.routeWrapper(instance, method, req, res, next),
+              this.router[config.method.toLowerCase()](
+                async (req, res, next) =>
+                  await this.routeWrapper(instance, method, req, res, next),
               );
             }
             break;
-          case RouterTypes.STATIC:
-            this.router.use((req, res, next) =>
-              walk(
-                path.join(
-                  this.config.cwd || process.cwd(),
-                  config.endpoint || '/',
-                ),
-                (err, files: string[]) => {
-                  if (err) return next(err);
-                  const match: string | undefined = files
-                    .filter((file: string) =>
-                      file.match(new RegExp('\\b' + req.url + '\\b', 'g')),
-                    )
-                    .pop();
-                  if (match) {
-                    this.view(instance, method, config, match, req, res, next);
-                  } else {
-                    next();
-                  }
-                },
-              ),
+          case RouterTypes.PARAM:
+            this.router.param(
+              config.param!.name,
+              async (req, res, next, param) => {
+                req[config.param!.as] = await instance[method](req, param);
+                next();
+              },
             );
+            break;
+          case RouterTypes.STATIC:
+            this.router.use(async (req, res, next) => {
+              const pathname: string = path.join(
+                this.config.cwd || process.cwd(),
+                config.endpoint || '/',
+              );
+              const AsyncLStat = promisify(fs.lstat);
+              const stats: fs.Stats = await AsyncLStat(pathname);
+              let match: string | undefined;
+              if (stats.isDirectory()) {
+                const files: string[] = <string[]>await AsyncWalk(pathname);
+                match = files
+                  .filter((file: string) =>
+                    file.match(new RegExp('\\b' + req.url + '\\b', 'g')),
+                  )
+                  .pop();
+              }
+              await this.view(
+                instance,
+                method,
+                config,
+                match || pathname,
+                req,
+                res,
+                next,
+              );
+            });
             break;
           case RouterTypes.VIEW:
             this.router[config.method.toLowerCase()](
               config.endpoint || config.file,
-              (req, res, next) => {
-                this.view(
+              async (req, res, next) =>
+                await this.view(
                   instance,
                   method,
                   config,
@@ -253,8 +283,7 @@ export class AppFactory {
                   req,
                   res,
                   next,
-                );
-              },
+                ),
             );
             break;
         }
@@ -272,12 +301,15 @@ export class AppFactory {
    * @description This handler will provide shared functionality
    * when registering different type of route features.
    */
-  routeWrapper(instance, method, req, res, next) {
-    const result = instance[method](req, res);
-    if (result instanceof Promise) {
-      result.then(r => next(null, r), e => next(e));
-    } else {
-      next(null, result);
+  async routeWrapper(instance, method, req, res, next) {
+    console.log('RESOLVING ENDPOINT: ', req.url);
+    // Potentially register LifeCycles in here.
+    const result = await instance[method](req, res);
+    console.log('PASSING SOME RESULT TO THE ROUTER', result);
+    // If the method returned a value, otherwise they might response their selves
+    if (result) {
+      // Send result to the requester
+      res.end(Utils.IsJsonString(result) ? JSON.stringify(result) : result);
     }
   }
   /**
@@ -287,13 +319,8 @@ export class AppFactory {
    * @param res
    * Will server view files
    */
-  private view(instance, method, config, pathname, req, res, next) {
+  private async view(instance, method, config, pathname, req, res, next) {
     if (req.url && req.method) {
-      /* We need to form the real pathname, lets figure out how
-      let pathname: string = path.join(
-        this.config.cwd || process.cwd(),
-        config.file,
-      );*/
       // Try to get a file extension
       const ext = path.parse(pathname).ext;
       // maps file extention to MIME typere
@@ -315,50 +342,32 @@ export class AppFactory {
         '.eot': 'application/vnd.ms-fontobject',
         '.otf': 'application/font-otf',
       };
-      fs.exists(pathname, exist => {
-        if (!exist) {
-          // if the file is not found, return 404
-          res.statusCode = 404;
-          return res.end(
-            JSON.stringify({
-              code: res.statusCode,
-              message: `Unable to find ${pathname}`,
-            }),
-          );
-        }
-        // if is a directory search for index file matching the extention
-        if (fs.statSync(pathname).isDirectory()) pathname += '/index' + ext;
-        // read file from file system
-        fs.readFile(pathname, (err, data) => {
-          if (err) {
-            res.statusCode = 500;
-            return res.end(
-              JSON.stringify({
-                code: res.statusCode,
-                message: `Error getting the file: ${err}.`,
-              }),
-            );
-          } else {
-            res.setHeader('Content-type', map[ext] || 'text/plain');
-            // Potentially get cookies and headers
-            const result = instance[method](req, data);
-            if (result instanceof Promise) {
-              result.then(
-                r => res.end(Utils.IsJsonString(r) ? JSON.stringify(r) : r),
-                e => next(JSON.stringify(e)),
-              );
-            } else if (!result) {
-              res.end(data);
-            } else if (result) {
-              res.end(
-                Utils.IsJsonString(result) ? JSON.stringify(result) : result,
-              );
-            } else {
-              next();
-            }
-          }
-        });
-      });
+      // Promisify exists and readfile
+      const AsyncExists = promisify(fs.exists);
+      const AsyncReadFile = promisify(fs.readFile);
+      // Verify the pathname exists
+      const exist: boolean = await AsyncExists(pathname);
+      // If not, return 404 code
+      if (!exist) {
+        // if the file is not found, return 404
+        res.statusCode = 404;
+        console.log(
+          `ONIXJS Error: The configured pathfile "${pathname}" does not exist`,
+        );
+        return res.end(
+          JSON.stringify({
+            code: res.statusCode,
+            message: `Oops!!! something went wrong.`,
+          }),
+        );
+      }
+      // read file from file system
+      const data = await AsyncReadFile(pathname);
+      // Potentially get cookies and headers
+      const result = await instance[method](req, data);
+      // Set response headers
+      res.setHeader('Content-type', map[ext] || 'text/plain');
+      res.end(Utils.IsJsonString(result) ? JSON.stringify(result) : result);
     }
   }
   /**

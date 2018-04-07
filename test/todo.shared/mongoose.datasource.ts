@@ -20,24 +20,18 @@ export class MongooseDatasource implements IDataSource {
    * @description This method should connect the mongoose ORM
    * as described in their documentation
    */
-  connect() {
-    this.mongoose
-      .connect(
-        'mongodb://lb-sdk-test:lb-sdk-test@ds153400.mlab.com:53400/heroku_pmkjxjwz',
-      )
-      .then(() => {
-        console.log('MongoDB Connected');
-      }, console.error);
+  async connect(): Promise<Mongoose> {
+    return this.mongoose.connect(
+      'mongodb://lb-sdk-test:lb-sdk-test@ds153400.mlab.com:53400/heroku_pmkjxjwz',
+    );
   }
   /**
    * @method disconnect
    * @description This method should disconnect the mongoose ORM
    * as described in their documentation
    */
-  disconnect() {
-    this.mongoose.disconnect().then(() => {
-      console.log('MongoDB Connected');
-    }, console.error);
+  async disconnect() {
+    return this.mongoose.disconnect();
   }
   /**
    * @method method

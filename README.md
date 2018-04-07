@@ -27,7 +27,7 @@ The **[OnixJS] FrameWork** is an ***Enterprise Grade*** **Node.JS** platform tha
 - Middleware Router
 - Compatibility with middleware based modules (e.g. express/bodyparser)
 - View Renderer Compatible with any JS Template Engine (*DoT, EJS, Etc*)
-- *Monolithic SOA, MSA or Hybrid Architecture*.
+- Supported Architectural Patterns: *SOA, MSA and MVC*.
 - Representational State Transfer API (*REST API*)
 - Remote Procedure Call and Streams API (*RPC/RPCS APIs*)
 - Module and Component Level LifeCycles (*Hooks*)
@@ -47,11 +47,11 @@ The **[OnixJS] FrameWork** is an ***Enterprise Grade*** **Node.JS** platform tha
 
 
 - **Slightly Opinionated**: Though [OnixJS] provide with a business logic structure based on *SOA*, *MSA* and it does specify how to communicate your services or clients, *we do empower you* to decide which *Front-End Framework*, *ORM* or even an *Server Side Renderer* (Template Engine) to install. By using any of our provided [Factories], you'll be free to make most of the important decisions.
-- **Stability**: We strongly believe that providing a highly featured, tested or covered framework is great but not enough. We also believe that staging or deploying a project now or in a year MUSTN'T be affected by the framework or any of its dependencies, being that the reason of why we decided to use the lowest amount of dependencies in the industry (**[4 Loupe Selected Deps](https://github.com/onixjs/core/blob/master/package.json)**). 
+- **Stability**: We strongly believe that providing a highly featured, tested or covered framework is great but not enough. We also believe that staging or deploying a project now or in a year MUSTN'T be affected by the framework or any of its dependencies, being that the reason of why we decided to use the lowest amount of dependencies possible. 
 - **High-Availability**: Either you choose Monolithic *SOA* or *MSA*, your services will run independently in separated processes. While implementing the right patterns and infrastructure, any failure on either of your services won't block or disable access to users or other services.
 - **High-Performance**: [OnixJS] provides with a really small footprint, we don't really add unnecessary and unused features, instead we provide you with artifacts all based on established design patterns for you to build projects with ease, as well as providing ways to flawlessly communicate services and clients. 
 - **Security**: [OnixJS] provides with a fully [OIDC] featured *Single Sign On* IdP, so you can start avoiding expenses on authentication and authorization issues due far simplistic auth implementations not suited for enterprise grade projects.
-- **Compatibility**: A must have goal is to provide not only compatibility with other Middleware Based Node.JS Frameworks, but as described before; compatibility with any ORM, Template Engine, Front-End Framework and even other Programming Languages using the REST API or the OnixJS REST Gateway.
+- **Compatibility**: A must have goal is to provide not only compatibility with other Middleware Based Node.JS Frameworks, but as described before; compatibility with any ORM, Template Engine, Front-End Framework and even other Programming Languages using the REST API or the [OnixJS] REST Gateway.
 - **Communication**: With the [OnixJS] [Isomorphic] [SDK] you'll be able to easily communicate services to services or services to clients. *Don't want to communicate services over network? No problem, communicate services using STD IO Streams.*
 
 
