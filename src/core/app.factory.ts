@@ -305,13 +305,11 @@ export class AppFactory {
    */
   async routeWrapper(instance, method, req, res, next) {
     // Potentially register LifeCycles in here.
-    const result = await instance[method](req, res);
+    const result = await instance[method](req, res, next);
     // If the method returned a value, otherwise they might response their selves
     if (result) {
       // Send result to the requester
       res.end(Utils.IsJsonString(result) ? JSON.stringify(result) : result);
-    } else {
-      next();
     }
   }
   /**
