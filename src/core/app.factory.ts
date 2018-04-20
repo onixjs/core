@@ -99,7 +99,7 @@ export class AppFactory {
    */
   public async setup() {
     // Iterate list of module classes
-    return promiseSeries(
+    const result = await promiseSeries(
       this.config.modules.map((Module: Constructor) => async () => {
         //this.config.modules.forEach(async (Module: Constructor) => {
         console.log('Module Name: ', Module.name);
@@ -129,13 +129,15 @@ export class AppFactory {
             this.app.modules[Module.name],
             Module,
           );
-        if (process.send)
-          process.send({
-            type: OperationType.APP_CREATE_RESPONSE,
-            message: this.schema(),
-          });
       }),
     );
+    if (process.send)
+      process.send({
+        type: OperationType.APP_CREATE_RESPONSE,
+        message: this.schema(),
+      });
+
+    return result;
   }
   /**
    * @method setupComponents
@@ -361,13 +363,17 @@ export class AppFactory {
           }),
         );
       }
-      // read file from file system
-      const data = await AsyncReadFile(pathname);
-      // Potentially get cookies and headers
-      const result = await instance[method](req, data);
-      // Set response headers
-      res.setHeader('Content-type', map[ext] || 'text/plain');
-      res.end(Utils.IsJsonString(result) ? JSON.stringify(result) : result);
+      try {
+        // read file from file system
+        const data = await AsyncReadFile(pathname);
+        // Potentially get cookies and headers
+        const result = await instance[method](req, data);
+        // Set response headers
+        res.setHeader('Content-type', map[ext] || 'text/plain');
+        res.end(Utils.IsJsonString(result) ? JSON.stringify(result) : result);
+      } catch (e) {
+        next();
+      }
     }
   }
   /**
