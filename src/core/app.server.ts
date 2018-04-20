@@ -142,7 +142,6 @@ export class AppServer {
               (this.config.network && !this.config.network!.disabled)
             ) {
               // Requires to be started before creating websocket.
-              console.log('STARTING HTTP SERVER:', this.config);
               this.http.listen(this.config.port || 6000);
               // Ok now we can start the websocket
               this.websocket = new WebSocket.Server({
