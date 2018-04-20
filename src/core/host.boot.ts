@@ -1,4 +1,4 @@
-import {OnixJS} from '../index';
+import {OnixJS, promiseSeries} from '../index';
 import * as path from 'path';
 import {OnixConfig, BootConfig} from '../interfaces';
 /**
@@ -56,7 +56,9 @@ export class HostBoot {
   }
 
   async run() {
-    this.bc.apps.forEach(async app => await this.host.load(app));
+    await promiseSeries(
+      this.bc.apps.map(app => async () => this.host.load(app)),
+    );
     await this.host.start();
   }
 }
