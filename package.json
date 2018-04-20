@@ -1,6 +1,6 @@
 {
   "name": "@onixjs/core",
-  "version": "1.0.0-alpha.18",
+  "version": "1.0.0-alpha.18.1",
   "description": "The High-Performance SOA Real-Time Framework for Node.JS",
   "main": "dist/src/index.js",
   "scripts": {
