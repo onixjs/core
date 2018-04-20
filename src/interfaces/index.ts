@@ -363,7 +363,9 @@ export interface IViewHandler {
 }
 
 export interface IRouteHandler {
-  (req: OnixHTTPRequest, res: http.ServerResponse): Promise<any> | void;
+  (req: OnixHTTPRequest, res: http.ServerResponse, next: () => void): Promise<
+    any
+  > | void;
 }
 
 export interface IRouteParamHandler {
