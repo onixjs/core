@@ -248,26 +248,30 @@ export class AppFactory {
                 this.config.cwd || process.cwd(),
                 config.endpoint || '/',
               );
-              const AsyncLStat = promisify(fs.lstat);
-              const stats: fs.Stats = await AsyncLStat(pathname);
-              let match: string | undefined;
-              if (stats.isDirectory()) {
-                const files: string[] = <string[]>await AsyncWalk(pathname);
-                match = files
-                  .filter((file: string) =>
-                    file.match(new RegExp('\\b' + req.url + '\\b', 'g')),
-                  )
-                  .pop();
+              try {
+                const AsyncLStat = promisify(fs.lstat);
+                const stats: fs.Stats = await AsyncLStat(pathname);
+                let match: string | undefined;
+                if (stats.isDirectory()) {
+                  const files: string[] = <string[]>await AsyncWalk(pathname);
+                  match = files
+                    .filter((file: string) =>
+                      file.match(new RegExp('\\b' + req.url + '\\b', 'g')),
+                    )
+                    .pop();
+                }
+                await this.view(
+                  instance,
+                  method,
+                  config,
+                  match || pathname,
+                  req,
+                  res,
+                  next,
+                );
+              } catch (e) {
+                next();
               }
-              await this.view(
-                instance,
-                method,
-                config,
-                match || pathname,
-                req,
-                res,
-                next,
-              );
             });
             break;
           case RouterTypes.VIEW:
@@ -345,30 +349,34 @@ export class AppFactory {
       // Promisify exists and readfile
       const AsyncExists = promisify(fs.exists);
       const AsyncReadFile = promisify(fs.readFile);
-      // Verify the pathname exists
-      const exist: boolean = await AsyncExists(pathname);
-      // If not, return 404 code
-      if (!exist) {
-        // if the file is not found, return 404
-        res.statusCode = 404;
-        console.log(
-          `ONIXJS Error: The configured pathfile "${pathname}" does not exist`,
-        );
-        return res.end(
-          JSON.stringify({
-            code: res.statusCode,
-            message: `Oops!!! something went wrong.`,
-          }),
-        );
-      }
       try {
-        // read file from file system
-        const data = await AsyncReadFile(pathname);
-        // Potentially get cookies and headers
-        const result = await instance[method](req, data);
-        // Set response headers
-        res.setHeader('Content-type', map[ext] || 'text/plain');
-        res.end(Utils.IsJsonString(result) ? JSON.stringify(result) : result);
+        // Verify the pathname exists
+        const exist: boolean = await AsyncExists(pathname);
+        // If not, return 404 code
+        if (!exist) {
+          // if the file is not found, return 404
+          res.statusCode = 404;
+          console.log(
+            `ONIXJS Error: The configured pathfile "${pathname}" does not exist`,
+          );
+          return res.end(
+            JSON.stringify({
+              code: res.statusCode,
+              message: `Oops!!! something went wrong.`,
+            }),
+          );
+        }
+        try {
+          // read file from file system
+          const data = await AsyncReadFile(pathname);
+          // Potentially get cookies and headers
+          const result = await instance[method](req, data);
+          // Set response headers
+          res.setHeader('Content-type', map[ext] || 'text/plain');
+          res.end(Utils.IsJsonString(result) ? JSON.stringify(result) : result);
+        } catch (e) {
+          next();
+        }
       } catch (e) {
         next();
       }
