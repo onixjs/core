@@ -12,7 +12,6 @@ import {
   OperationType,
   IAppOperation,
   Component,
-  OnixMessage,
   Service,
   Inject,
   DataSource,
@@ -29,7 +28,6 @@ import {
   Constructor,
   Router,
 } from '../src';
-import {ClientConnection} from '../src/core/connection';
 import {LifeCycle} from '../src/core/lifecycle';
 import {Injector} from '../src/core/injector';
 import {HostBoot} from '../src/core/host.boot';
@@ -42,7 +40,8 @@ import {NodeJS} from '@onixjs/sdk/dist/core/node.adapters';
 import {Utils} from '@onixjs/sdk/dist/utils';
 import {Mongoose, Schema} from 'mongoose';
 const cwd = path.join(process.cwd(), 'dist', 'test');
-//* Test AppFactory
+// Test AppFactory
+
 test('Core: AppFactory creates an Application.', async t => {
   class MyApp extends Application {}
   const instance: AppFactory = new AppFactory(MyApp);
@@ -80,6 +79,7 @@ test('Core: OnixJS loads creates duplicated Application.', async t => {
   const error = await t.throws(onix.load('TodoApp@todo.app:disabled'));
   t.is(error.message, 'OnixJS Error: Trying to add duplicated application');
 });
+
 // Test OnixJS ping missing app
 test('Core: OnixJS pings missing Application.', async t => {
   const onix: OnixJS = new OnixJS({
@@ -92,6 +92,7 @@ test('Core: OnixJS pings missing Application.', async t => {
     'OnixJS Error: Trying to ping unexisting app "MissingApp".',
   );
 });
+
 // Test OnixJS
 test('Core: OnixJS fails on coordinating invalid callee.', async t => {
   const onix: OnixJS = new OnixJS({
@@ -103,6 +104,7 @@ test('Core: OnixJS fails on coordinating invalid callee.', async t => {
   );
   t.is(error.message, 'Unable to find callee application');
 });
+
 // Test OnixJS Apps getter
 test('Core: OnixJS gets list of apps.', async t => {
   const onix: OnixJS = new OnixJS({
@@ -113,6 +115,7 @@ test('Core: OnixJS gets list of apps.', async t => {
   const apps = onix.apps();
   t.is(Object.keys(apps).length, 1);
 });
+
 // Test OnixJS Schema builder
 test('Core: OnixJS schema builder.', async t => {
   class MyComponent {
@@ -159,9 +162,12 @@ test('Core: CallResponser invalid call.', async t => {
   const responser: CallResponser = new CallResponser(factory, MyApp);
   const error = await t.throws(
     responser.process({
-      uuid: '1',
-      rpc: 'something.really.weird.to.call.which.is.invalid',
-      request: <IRequest>{},
+      uuid: Utils.uuid(),
+      type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
+      message: {
+        rpc: 'something.really.weird.to.call.which.is.invalid',
+        request: <IRequest>{},
+      },
     }),
   );
   t.is(
@@ -192,9 +198,12 @@ test('Core: CallResponser invalid call.', async t => {
   const responser: CallResponser = new CallResponser(factory, MyApp);
   const error = await t.throws(
     responser.process({
-      uuid: '1',
-      rpc: 'MyApp.MyModule.MyComponent.NotExistingMethod',
-      request: <IRequest>{},
+      uuid: Utils.uuid(),
+      type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
+      message: {
+        rpc: 'MyApp.MyModule.MyComponent.NotExistingMethod',
+        request: <IRequest>{},
+      },
     }),
   );
   t.is(
@@ -225,9 +234,12 @@ test('Core: CallResponser invalid call.', async t => {
   const responser: CallResponser = new CallResponser(factory, MyApp);
   const error = await t.throws(
     responser.process({
-      uuid: '1',
-      rpc: 'MyApp.MyModule.MyComponent.NotExistingMethod',
-      request: <IRequest>{},
+      uuid: Utils.uuid(),
+      type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
+      message: {
+        rpc: 'MyApp.MyModule.MyComponent.NotExistingMethod',
+        request: <IRequest>{},
+      },
     }),
   );
   t.is(
@@ -263,12 +275,15 @@ test('Core: CallResponser Hooks.', async t => {
   await factory.setup();
   const responser: CallResponser = new CallResponser(factory, MyApp);
   const result = await responser.process({
-    uuid: '1',
-    rpc: 'MyApp.MyModule.MyComponent.test',
-    request: <IRequest>{
-      metadata: {stream: false},
-      payload: {
-        text: 'Hello Responser',
+    uuid: Utils.uuid(),
+    type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
+    message: {
+      rpc: 'MyApp.MyModule.MyComponent.test',
+      request: <IRequest>{
+        metadata: {stream: false},
+        payload: {
+          text: 'Hello Responser',
+        },
       },
     },
   });
@@ -306,11 +321,14 @@ test('Core: CallResponser Hooks.', async t => {
   const streamer: CallStreamer = new CallStreamer(factory, MyApp);
   streamer.register(
     {
-      uuid: '1',
-      rpc: 'MyApp.MyModule.MyComponent.test',
-      request: <IRequest>{
-        metadata: {stream: true},
-        payload: {},
+      uuid: Utils.uuid(),
+      type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
+      message: {
+        rpc: 'MyApp.MyModule.MyComponent.test',
+        request: <IRequest>{
+          metadata: {stream: true},
+          payload: {},
+        },
       },
     },
     result => {
@@ -342,9 +360,12 @@ test('Core: CallStreamer invalid call.', async t => {
   const streamer: CallStreamer = new CallStreamer(factory, MyApp);
   streamer.register(
     {
-      uuid: '1',
-      rpc: 'MyApp.MyModule.MyComponent.invalid.method.rpc.call',
-      request: <IRequest>{},
+      uuid: Utils.uuid(),
+      type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
+      message: {
+        rpc: 'MyApp.MyModule.MyComponent.invalid.method.rpc.call',
+        request: <IRequest>{},
+      },
     },
     result => {
       t.is(
@@ -363,15 +384,27 @@ test('Core: AppServer invalid operation.', async t => {
   });
   // Start App
   await appServer.operation({
-    uuid: '2',
+    uuid: Utils.uuid(),
     type: OperationType.APP_CREATE,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Start websocket server
   await appServer.operation({
-    uuid: '2',
+    uuid: Utils.uuid(),
     type: OperationType.APP_START,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Connect to the application websocket server
   const client: WebSocket = new WebSocket('ws://127.0.0.1:8090');
@@ -379,11 +412,17 @@ test('Core: AppServer invalid operation.', async t => {
   client.on('message', async data => {
     if (Utils.IsJsonString(data)) {
       const operation: IAppOperation = JSON.parse(data);
-      t.is(operation.message, 'welcome');
+      t.is(operation.message.request.payload, 'welcome');
       await appServer.operation({
-        uuid: '2',
+        uuid: Utils.uuid(),
         type: OperationType.APP_STOP,
-        message: '',
+        message: {
+          rpc: '',
+          request: {
+            metadata: {stream: false},
+            payload: '',
+          },
+        },
       });
     }
   });
@@ -409,94 +448,6 @@ test('Core: Application start and stop.', async t => {
   const stopResult: boolean = await appInstance.stop();
   t.true(startResult);
   t.true(stopResult);
-});
-// Test Connection
-test('Core: Connection.', async t => {
-  const payload = {hello: 'connection...'};
-  @Component({
-    lifecycle: async function(app, metadata, method) {
-      console.log('SAVING CONNECTION TEST');
-      const methodResult = await method();
-      return methodResult;
-    },
-  })
-  class MyComponent {
-    @RPC()
-    testRPC(data) {
-      return data;
-    }
-    @Stream()
-    testStream(stream) {
-      return stream(payload);
-    }
-  }
-  @Module({
-    models: [],
-    renderers: [],
-    services: [],
-    components: [MyComponent],
-  })
-  class MyModule {}
-  class MyApp extends Application {}
-  const factory: AppFactory = new AppFactory(MyApp);
-  factory.config = {network: {disabled: true}, modules: [MyModule]};
-  factory.notifier = new AppNotifier();
-  await factory.setup();
-  // Create websocket server
-  const server = new WebSocket.Server({host: '127.0.0.1', port: 9090}, () => {
-    const responser = new CallResponser(factory, MyApp);
-    const streamer = new CallStreamer(factory, MyApp);
-    // UUID
-    const uuid: string = '420';
-    // Wait for client connections
-    server.on('connection', async (ws: WebSocket) => {
-      ws.send(<IAppOperation>{
-        type: OperationType.APP_PING_RESPONSE,
-      });
-      // Create a new Client Connection
-      const connection = new ClientConnection(ws, responser, streamer);
-      // Handle RPC Call
-      await connection.handle(<OnixMessage>{
-        uuid,
-        rpc: 'MyApp.MyModule.MyComponent.testRPC',
-        request: <IRequest>{
-          metadata: {stream: false, caller: 'tester', token: 'dummytoken'},
-          payload,
-        },
-      });
-      // Handle Stream
-      await connection.handle(<OnixMessage>{
-        uuid,
-        rpc: 'MyApp.MyModule.MyComponent.testStream',
-        request: <IRequest>{
-          metadata: {stream: true, caller: 'tester', token: 'dummytoken'},
-          payload,
-        },
-      });
-    });
-    // Create Client
-    const client: WebSocket = new WebSocket('ws://127.0.0.1:9090');
-    // Create Listeners
-    client.on('message', (data: string) => {
-      if (Utils.IsJsonString(data)) {
-        const rpcOp: IAppOperation = JSON.parse(data);
-        if (
-          rpcOp.uuid === uuid &&
-          rpcOp.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE
-        ) {
-          t.is(payload.hello, rpcOp.message.hello);
-        }
-        const streamOp: IAppOperation = JSON.parse(data);
-        if (
-          streamOp.uuid === uuid &&
-          streamOp.type === OperationType.ONIX_REMOTE_CALL_STREAM &&
-          streamOp.message
-        ) {
-          t.is(payload.hello, streamOp.message.hello);
-        }
-      }
-    });
-  });
 });
 // Test host boot
 test('Core: host boot.', async t => {
@@ -679,6 +630,7 @@ test('Core: Inject Throws Uninstalled Injectable.', async t => {
     'ONIXJS CORE: Unable to inject an unregisted class "TodoModel", please install it within the @Module "TodoComponent" configuration',
   );
 });
+
 // Test Main Life Cycle
 test('Core: main lifecycle.', async t => {
   const result: boolean = true;
@@ -699,7 +651,6 @@ test('Core: main lifecycle.', async t => {
   const r1 = await lifecycle.onAppMethodCall(
     instance,
     {
-      uuid: '1',
       rpc: 'somerpc',
       request: <IRequest>{
         metadata: {},
@@ -711,7 +662,6 @@ test('Core: main lifecycle.', async t => {
   const r2 = await lifecycle.onModuleMethodCall(
     instance,
     {
-      uuid: '2',
       rpc: 'somerpc',
       request: <IRequest>{
         metadata: {},
@@ -723,7 +673,6 @@ test('Core: main lifecycle.', async t => {
   const r3 = await lifecycle.onComponentMethodCall(
     instance,
     {
-      uuid: '3',
       rpc: 'somerpc',
       request: <IRequest>{
         metadata: {},
@@ -762,15 +711,27 @@ test('Core: Component Router REST Endpoint.', async t => {
   });
   // Create Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_CREATE,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Start Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_START,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Create HTTP Client
   const client: NodeJS.HTTP = new NodeJS.HTTP();
@@ -781,9 +742,15 @@ test('Core: Component Router REST Endpoint.', async t => {
   t.is(result.HELLO, 'WORLD');
   // Start Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_STOP,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
 });
 //Test Component Router Param Hook
@@ -828,15 +795,27 @@ test('Core: Component Router Param Hook.', async t => {
   });
   // Create Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_CREATE,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Start Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_START,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Create HTTP Client
   const client: NodeJS.HTTP = new NodeJS.HTTP();
@@ -853,9 +832,15 @@ test('Core: Component Router Param Hook.', async t => {
   t.is(resultB.text, 'Bar');
   // Start Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_STOP,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
 });
 //Test Component Static
@@ -884,15 +869,27 @@ test('Core: Component Static.', async t => {
   });
   // Create Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_CREATE,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Start Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_START,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Create HTTP Client
   const client: NodeJS.HTTP = new NodeJS.HTTP();
@@ -905,9 +902,15 @@ test('Core: Component Static.', async t => {
   t.is(JSON.parse(result.toString()).hello, 'world');
   // Start Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_STOP,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
 });
 //Test Component View
@@ -939,15 +942,27 @@ test('Core: Component View.', async t => {
   });
   // Create Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_CREATE,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Start Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_START,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Create HTTP Client
   const client: NodeJS.HTTP = new NodeJS.HTTP();
@@ -960,9 +975,15 @@ test('Core: Component View.', async t => {
   t.is(JSON.parse(result.toString()).hello, 'world');
   // Start Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_STOP,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
 });
 //Test Component View Immutable
@@ -994,15 +1015,27 @@ test('Core: Component View Immutable.', async t => {
   });
   // Create Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_CREATE,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Start Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_START,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Create HTTP Client
   const client: NodeJS.HTTP = new NodeJS.HTTP();
@@ -1015,9 +1048,15 @@ test('Core: Component View Immutable.', async t => {
   t.is(JSON.parse(result.toString()).hello, 'world');
   // Start Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_STOP,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
 });
 //Test Component View FilePath Not Exist
@@ -1049,15 +1088,27 @@ test('Core: Component View FilePath Not Exist.', async t => {
   });
   // Create Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_CREATE,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Start Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_START,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Create HTTP Client
   const client: NodeJS.HTTP = new NodeJS.HTTP();
@@ -1068,9 +1119,15 @@ test('Core: Component View FilePath Not Exist.', async t => {
   t.is(result.message, 'Oops!!! something went wrong.');
   // Start Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_STOP,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
 });
 //TestView Renderer.
@@ -1117,15 +1174,27 @@ test('Core: View Renderer.', async t => {
   });
   // Create Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_CREATE,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Start Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_START,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
   // Create HTTP Client
   const client: NodeJS.HTTP = new NodeJS.HTTP();
@@ -1137,9 +1206,15 @@ test('Core: View Renderer.', async t => {
   t.is(JSON.parse(result.toString()).HELLO, 'WORLD');
   // Start Application
   await server.operation({
-    uuid: 'dummy',
+    uuid: Utils.uuid(),
     type: OperationType.APP_STOP,
-    message: '',
+    message: {
+      rpc: '',
+      request: {
+        metadata: {stream: false},
+        payload: '',
+      },
+    },
   });
 });
 //Test Notifier

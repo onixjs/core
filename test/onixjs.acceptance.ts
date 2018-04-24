@@ -1,14 +1,20 @@
 import {test} from 'ava';
 import * as path from 'path';
-import {OnixJS, OperationType, IAppOperation, IRequest} from '../src/index';
+import {
+  OnixJS,
+  OperationType,
+  IAppOperation,
+  IRequest,
+  OnixMessage,
+} from '../src/index';
 import {TodoModel} from './todo.shared/todo.model';
 const pkg = require('../../package.json');
 const cwd = path.join(process.cwd(), 'dist', 'test');
 import * as WebSocket from 'uws';
-import {IAppConfig, OnixMessage} from '../src/interfaces';
+import {IAppConfig} from '../src/interfaces';
 import {Utils} from '@onixjs/sdk/dist/utils';
 import {OnixClient, AppReference, ComponentReference} from '@onixjs/sdk';
-import {NodeJS} from '@onixjs/sdk/dist/core/node.adapters';
+import {NodeJS} from '@onixjs/sdk/dist/adapters/node.adapters';
 // Test Onix Version
 
 test('Onix version', t => {
@@ -20,19 +26,18 @@ test('Onix app starter', async t => {
   const onix: OnixJS = new OnixJS({cwd, port: 8083});
   await onix.load('TodoApp@todo.app:disabled');
   const results: OperationType.APP_START_RESPONSE[] = await onix.start();
-  console.log('THE APP START RESULT: ', results);
   t.deepEqual(results, [
     // Second for the loaded app
     OperationType.APP_START_RESPONSE,
   ]);
   await onix.stop();
 });
+
 //Test Onix App Pinger
 test('Onix app pinger', async t => {
   const onix: OnixJS = new OnixJS({cwd, port: 8084});
   await onix.load('TodoApp@todo.app:disabled');
   const config: IAppConfig = await onix.ping('TodoApp');
-  console.log('SOME CONFIG: ', config);
   t.true(config.network!.disabled);
 });
 //Test Onix Apps Say Hello
@@ -64,7 +69,7 @@ test('Onix rpc component methods from server', async t => {
     },
   );
   // Get result todo instance from operation message
-  const result: TodoModel = <TodoModel>operation.message;
+  const result: TodoModel = <TodoModel>operation.message.request.payload;
   await onix.stop();
   // Test the text and a persisted mongodb id.
   t.deepEqual(todo.text, result.text);
@@ -87,8 +92,8 @@ test('Onix rpc component methods from client', async t => {
       if (
         operation.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE
       ) {
-        t.deepEqual(todo.text, operation.message.text);
-        t.truthy(operation.message._id);
+        t.deepEqual(todo.text, operation.message.request.payload.text);
+        t.truthy(operation.message.request.payload._id);
         await onix.stop();
       }
     } else {
@@ -130,7 +135,7 @@ test('Onix rpc component stream', async t => {
   // Init SDK
   await client.init();
   // Create a TodoApp Reference
-  const TodoAppRef: AppReference | Error = await client.AppReference('TodoApp');
+  const TodoAppRef: AppReference | Error = client.AppReference('TodoApp');
   // Verify we actually got a Reference and not an Error
   if (TodoAppRef instanceof AppReference) {
     const componentRef: ComponentReference = TodoAppRef.Module(

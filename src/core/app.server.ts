@@ -4,15 +4,12 @@ import {
   IAppOperation,
   IAppConfig,
   AppConstructor,
-  OnixMessage,
 } from '../index';
 import {AppFactory} from './app.factory';
 import {CallResponser} from './call.responser';
-import {ClientConnection} from './index';
 import {CallStreamer} from './call.streamer';
 import {AppNotifier} from './app.notifier';
 import * as Router from 'router';
-import * as WebSocket from 'uws';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
@@ -27,11 +24,6 @@ import * as finalhandler from 'finalhandler';
  * load its own server (HTTP/WS)
  */
 export class AppServer {
-  /**
-   * @property websocket
-   * @description ws websocket
-   */
-  private websocket: WebSocket.Server;
   /**
    * @property http
    * @description ws http
@@ -87,10 +79,9 @@ export class AppServer {
       );
       // Listener for closing process
       process.on('exit', () =>
-        this.operation({
+        this.operation(<IAppOperation>{
           uuid: 'root',
           type: OperationType.APP_STOP,
-          message: '',
         }),
       );
     }
@@ -113,7 +104,7 @@ export class AppServer {
       // Event sent from broker when loading a project
       case OperationType.APP_CREATE:
         // Use Host Level configurations, like custom ports
-        Object.assign(this.config, operation.message);
+        Object.assign(this.config, operation.message.request.payload);
         // Create HTTP (If enabled)
         if (
           !this.config.network ||
@@ -126,46 +117,36 @@ export class AppServer {
         this.factory.config = this.config;
         this.factory.router = this.router;
         this.factory.notifier = this.notifier;
-        await this.factory.setup();
+        const schema: any = await this.factory.setup();
         // Setup responser and streamer
         this.responser = new CallResponser(this.factory, this.AppClass);
         this.streamer = new CallStreamer(this.factory, this.AppClass);
+        // Return IO Stream Message
+        if (process.send) {
+          process.send({
+            uuid: operation.uuid,
+            type: OperationType.APP_CREATE_RESPONSE,
+            message: {
+              request: {
+                payload: schema,
+              },
+            },
+          });
+        }
         break;
       // Event sent from the broker when starting a project
       case OperationType.APP_START:
         // Start WebSocket Server
-        await Promise.all([
-          new Promise((resolve, reject) => {
-            // Start up Micra WebSocket Server
-            if (
-              !this.config.network ||
-              (this.config.network && !this.config.network!.disabled)
-            ) {
-              // Requires to be started before creating websocket.
-              this.http.listen(this.config.port || 6000);
-              // Ok now we can start the websocket
-              this.websocket = new WebSocket.Server({
-                server: this.http,
-              });
-              // Wait for client connections
-              this.websocket.on('connection', (ws: WebSocket) => {
-                ws.send(<IAppOperation>{
-                  type: OperationType.APP_PING_RESPONSE,
-                });
-                new ClientConnection(ws, this.responser, this.streamer);
-                // Todo will need to register all the UUIDs
-                // And pass it to clean listeners.
-                this.notifier.emit('notify:new-ws-connection', ws);
-                ws.onclose = () => {
-                  this.notifier.emit('notify:closed-ws-connection', ws);
-                };
-              });
-            }
-            resolve();
-          }),
-          // Start up application
-          this.factory.app.start(),
-        ]);
+        if (
+          !this.config.network ||
+          (this.config.network && !this.config.network!.disabled)
+        ) {
+          // Requires to be started before creating websocket.
+          this.http.listen(this.config.port || 6000);
+        }
+        // Start up application
+        await this.factory.app.start();
+        // Send back result
         if (process.send)
           process.send({type: OperationType.APP_START_RESPONSE});
         break;
@@ -177,43 +158,79 @@ export class AppServer {
           (this.config.network && !this.config.network!.disabled)
         ) {
           this.http.close();
-          this.websocket.close();
+          //this.websocket.close(); DREPREATED
         }
         await this.factory.app.stop();
         if (process.send) process.send({type: OperationType.APP_STOP_RESPONSE});
         break;
       // Event sent from caller -> broker -> currentApp
       // These events are done through internal processes.
-      // External remote calls will be executed inside the OnixConnection
+      // Call procedure might directly call an RPC or register a STREAM
       case OperationType.ONIX_REMOTE_CALL_PROCEDURE:
-        const result = await this.responser.process(
-          <OnixMessage>operation.message,
-        );
-        // Send result back to broker
-        if (process.send)
-          process.send({
-            type: OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE,
-            message: result,
+        // Register Stream Request
+        if (operation.message.request.metadata.stream) {
+          this.streamer.register(operation, chunk => {
+            if (process.send)
+              process.send({
+                uuid: operation.uuid,
+                type: OperationType.ONIX_REMOTE_CALL_STREAM,
+                message: {
+                  rpc: operation.message.rpc,
+                  request: {
+                    metadata: {
+                      /* HERE We might want to return server-side metadata*/
+                    },
+                    payload: chunk,
+                  },
+                },
+              });
           });
+          // Else just process the request
+        } else {
+          const result = await this.responser.process(operation);
+          // Send result back to broker
+          if (process.send)
+            process.send(<IAppOperation>{
+              uuid: operation.uuid,
+              type: OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE,
+              message: {
+                rpc: operation.message.rpc,
+                request: {
+                  metadata: {
+                    /* HERE We might want to return server-side metadata*/
+                  },
+                  payload: result,
+                },
+              },
+            });
+        }
         break;
       // System level event to coordinate every application in the
       // cluster, in order to automatOnixMessagey call between each others
       case OperationType.APP_GREET:
-        let apps: string[] = <string[]>operation.message;
-        apps = apps.filter((name: string) => this.AppClass.name !== name);
-        const results: boolean[] = await this.greet(apps);
+        const results: boolean[] = await this.greet(operation);
         if (process.send)
           process.send({
+            uuid: operation.uuid,
             type: OperationType.APP_GREET_RESPONSE,
-            message: results,
+            message: {
+              request: {
+                payload: results,
+              },
+            },
           });
         break;
       // Sytem level event
       case OperationType.APP_PING:
         if (process.send)
           process.send({
+            uuid: operation.uuid,
             type: OperationType.APP_PING_RESPONSE,
-            message: this.config,
+            message: {
+              request: {
+                payload: this.config,
+              },
+            },
           });
         break;
     }
@@ -267,16 +284,23 @@ export class AppServer {
    * application within this server in order to confirm all
    * off the applications are up and running.
    */
-  private async greet(apps: string[]): Promise<boolean[]> {
+  private async greet(operation: IAppOperation): Promise<boolean[]> {
+    let apps: string[] = operation.message.request.payload;
+    apps = apps.filter((name: string) => this.AppClass.name !== name);
     return Promise.all(
       apps.map(
         (name: string) =>
           new Promise<boolean>(async (resolve, reject) => {
-            const result: boolean = await this.responser.process(<OnixMessage>{
-              uuid: '1',
-              rpc: `${name}.isAlive`,
-              request: {metadata: {}, payload: {}},
-            });
+            const result: boolean = await this.responser.process(
+              <IAppOperation>{
+                uuid: operation.uuid,
+                type: OperationType.APP_GREET_RESPONSE,
+                message: {
+                  rpc: `${name}.isAlive`,
+                  request: {metadata: {}, payload: {}},
+                },
+              },
+            );
             resolve(result);
           }),
       ),

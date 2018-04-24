@@ -1,5 +1,5 @@
 import {AppFactory} from './app.factory';
-import {AppConstructor, OnixMessage} from '../interfaces';
+import {AppConstructor, IAppOperation} from '../interfaces';
 import {LifeCycle} from '.';
 import {ReflectionKeys} from '..';
 
@@ -22,25 +22,22 @@ export class CallStreamer {
    * @description This method will register an incoming call in order
    * to send back an answer.
    */
-  register(message: OnixMessage, handler) {
+  register(operation: IAppOperation, handler) {
     console.log(
       `Onix callee app ${this.AppClass.name} got remote stream request`,
-    );
-    console.log(
-      `Onix callee app ${this.AppClass.name} registring rpc ${
-        message.rpc
-      } with call id ${message.uuid}`,
     );
     // Get segments from rpc endpoint
     let scope,
       method: Function | null = null,
       mainHook: Function = () => null,
       slaveHook: Function | null = null;
-    const segments: string[] = message.rpc.split('.');
+    const segments: string[] = operation.message.rpc.split('.');
     // Component level method, RPC Exposed
     if (segments.length !== 4) {
       return handler(
-        new Error(`OnixJS Error: RPC Call is invalid "${message.rpc}"`),
+        new Error(
+          `OnixJS Error: RPC Call is invalid "${operation.message.rpc}"`,
+        ),
       );
     }
     // Module level call (System only, not exposed)
@@ -72,7 +69,9 @@ export class CallStreamer {
     // Hey wait, but if the method doesn't exist?
     if (!method) {
       return handler(
-        new Error(`OnixJS Error: RPC Call is invalid "${message.rpc}"`),
+        new Error(
+          `OnixJS Error: RPC Call is invalid "${operation.message.rpc}"`,
+        ),
       );
     }
     // Default handler
@@ -80,7 +79,7 @@ export class CallStreamer {
     // Execute main hook, might be app/system or module level.
     mainHook(
       (name: string) => this.factory.scopes[segments[1]].get(name),
-      message,
+      operation.message,
       masterSubHandler => {
         masterSubHandler = masterSubHandler || def;
         // If there is a custom component level hook for this call
@@ -89,7 +88,7 @@ export class CallStreamer {
           // Do whatever the developer defined in component config
           slaveHook(
             (name: string) => this.factory.scopes[segments[1]].get(name),
-            message,
+            operation.message,
             slaveSubHandler => {
               // No slave subhandler?
               slaveSubHandler = slaveSubHandler || def;
@@ -98,7 +97,7 @@ export class CallStreamer {
                 ? method.call(
                     scope,
                     data => handler(slaveSubHandler(masterSubHandler(data))),
-                    message.request.payload,
+                    operation.message.request.payload,
                   )
                 : null;
             },
@@ -109,7 +108,7 @@ export class CallStreamer {
             ? method.call(
                 scope,
                 data => handler(masterSubHandler(data)),
-                message.request.payload,
+                operation.message.request.payload,
               )
             : null;
         }

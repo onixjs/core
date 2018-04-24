@@ -1,4 +1,4 @@
-import {OnixMessage, AppConstructor, ReflectionKeys} from '../interfaces';
+import {AppConstructor, ReflectionKeys, IAppOperation} from '../interfaces';
 import {AppFactory, LifeCycle} from '../core';
 /**
  * @class CallResponse
@@ -26,22 +26,18 @@ export class CallResponser {
    * @description This method will process an incoming call in order
    * to send back an answer.
    */
-  async process(message: OnixMessage): Promise<any> {
+  async process(operation: IAppOperation): Promise<any> {
     return new Promise<any>(async (resolve, reject) => {
-      console.log(
-        `Onix callee app ${this.AppClass.name} got remote call procedure`,
-      );
-      console.log(
-        `Onix callee app ${this.AppClass.name} processing rpc ${
-          message.rpc
-        } with call id ${message.uuid}`,
-      );
       // Get segments from rpc endpoint
-      const segments: string[] = message.rpc.split('.');
+      const segments: string[] = operation.message.rpc.split('.');
       // If segments are less than 2 or more than 4,
       // then this is an invalid call
       if (segments.length < 2 || segments.length > 4) {
-        reject(new Error(`OnixJS Error: RPC Call is invalid "${message.rpc}"`));
+        reject(
+          new Error(
+            `OnixJS Error: RPC Call is invalid "${operation.message.rpc}"`,
+          ),
+        );
         return;
       }
       // Declare executable endpoint method and hooks references
@@ -86,13 +82,17 @@ export class CallResponser {
       }
       // Hey wait, but if the method doesn't exist?
       if (!method) {
-        reject(new Error(`OnixJS Error: RPC Call is invalid "${message.rpc}"`));
+        reject(
+          new Error(
+            `OnixJS Error: RPC Call is invalid "${operation.message.rpc}"`,
+          ),
+        );
         return;
       }
       // Execute main hook, might be app/system or module level.
       const result = await mainHook(
         (name: string) => this.factory.scopes[segments[1]].get(name),
-        message,
+        operation.message,
         async (): Promise<any> => {
           // If there is a custom component level hook for this call
           // then execute it first.
@@ -100,18 +100,18 @@ export class CallResponser {
             // Do whatever the developer defined in component config
             return await slaveHook(
               (name: string) => this.factory.scopes[segments[1]].get(name),
-              message,
+              operation.message,
               async (): Promise<any> => {
                 // Ok cool, let me finish. lol (freaking genius)
                 return method
-                  ? await method.call(scope, message.request.payload)
+                  ? await method.call(scope, operation.message.request.payload)
                   : null;
               },
             );
           } else {
             // Else just call the requested method now.
             return method
-              ? await method.call(scope, message.request.payload)
+              ? await method.call(scope, operation.message.request.payload)
               : null;
           }
         },
