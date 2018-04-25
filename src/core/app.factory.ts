@@ -347,9 +347,6 @@ export class AppFactory {
         if (!exist) {
           // if the file is not found, return 404
           res.statusCode = 404;
-          console.log(
-            `ONIXJS Error: The configured pathfile "${pathname}" does not exist`,
-          );
           return res.end(
             JSON.stringify({
               code: res.statusCode,

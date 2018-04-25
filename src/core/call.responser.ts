@@ -1,4 +1,4 @@
-import {AppConstructor, ReflectionKeys, IAppOperation} from '../interfaces';
+import {ReflectionKeys, IAppOperation} from '../interfaces';
 import {AppFactory, LifeCycle} from '../core';
 /**
  * @class CallResponse
@@ -19,7 +19,7 @@ export class CallResponser {
    * @param factory
    * @param AppClass
    */
-  constructor(private factory: AppFactory, private AppClass: AppConstructor) {}
+  constructor(private factory: AppFactory) {}
   /**
    * @method process
    * @param operation
@@ -115,11 +115,6 @@ export class CallResponser {
               : null;
           }
         },
-      );
-      // Log result
-      console.log(
-        `Onix callee app ${this.AppClass.name} sending rpc result`,
-        result,
       );
       // Resolve promise
       resolve(result);

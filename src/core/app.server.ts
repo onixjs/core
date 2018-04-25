@@ -119,8 +119,8 @@ export class AppServer {
         this.factory.notifier = this.notifier;
         const schema: any = await this.factory.setup();
         // Setup responser and streamer
-        this.responser = new CallResponser(this.factory, this.AppClass);
-        this.streamer = new CallStreamer(this.factory, this.AppClass);
+        this.responser = new CallResponser(this.factory);
+        this.streamer = new CallStreamer(this.factory);
         // Return IO Stream Message
         if (process.send) {
           process.send({

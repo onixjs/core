@@ -39,7 +39,7 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.20';
+    return '1.0.0-alpha.20.1';
   }
   /**
    * @property router
@@ -242,7 +242,6 @@ export class OnixJS {
    */
   coordinate(rpc: string, request: IRequest) {
     return new Promise<IAppOperation>((resolve, reject) => {
-      console.log('Onix server got remote call procedure');
       const operation: IAppOperation = {
         uuid: Utils.uuid(),
         type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
@@ -252,17 +251,11 @@ export class OnixJS {
         },
       };
       const callee: string = rpc.split('.').shift() || '';
-      console.log('Onix server caller: ', request.metadata.caller);
-      console.log('Onix server callee: ', callee);
       if (this._apps[callee]) {
         this._apps[callee].process.on('message', (response: IAppOperation) => {
           if (
             response.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE
           ) {
-            console.log(
-              `Onix server response from callee (${callee}): `,
-              response.message,
-            );
             resolve(response);
           }
         });
