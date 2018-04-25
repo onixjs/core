@@ -4,7 +4,6 @@ import {
   IAppConfig,
   IModuleConfig,
   IComponent,
-  OperationType,
   Constructor,
   AppConstructor,
   IComponentConfig,
@@ -99,10 +98,8 @@ export class AppFactory {
    */
   public async setup() {
     // Iterate list of module classes
-    const result = await promiseSeries(
+    await promiseSeries(
       this.config.modules.map((Module: Constructor) => async () => {
-        //this.config.modules.forEach(async (Module: Constructor) => {
-        console.log('Module Name: ', Module.name);
         // Verify this is not a duplicated module
         if (this.app.modules[Module.name]) return;
         // Create a injection scope for this module
@@ -131,13 +128,8 @@ export class AppFactory {
           );
       }),
     );
-    if (process.send)
-      process.send({
-        type: OperationType.APP_CREATE_RESPONSE,
-        message: this.schema(),
-      });
-
-    return result;
+    // Return Application Schema
+    return this.schema();
   }
   /**
    * @method setupComponents
@@ -157,7 +149,6 @@ export class AppFactory {
     // Series of Promises
     await promiseSeries(
       config.components.map((Component: new () => IComponent) => async () => {
-        console.log('Component Name: ', Component.name);
         // If component does not exist
         if (!moduleInstance[Component.name]) {
           // Create a new component instance

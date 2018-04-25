@@ -133,7 +133,47 @@ export interface IApp {
 export interface IAppOperation {
   uuid: string;
   type: OperationType;
-  message: any;
+  message: OnixMessage;
+}
+/**
+ * @interface OnixMessage
+ * @author Jonathan Casarrubias
+ * @description OnixMessage Contract
+ */
+export interface OnixMessage {
+  rpc: string;
+  request: IRequest;
+}
+/**
+ * @interface IRequest
+ * @author Jonathan Casarrubias
+ * @description IRequest inteface
+ */
+export interface IRequest {
+  metadata: {[key: string]: any; stream?: boolean};
+  payload: any;
+}
+/**
+ * @author Jonathan Casarrubias
+ * @enum OperationType
+ * @description Enum used for system level operations.
+ */
+export enum OperationType {
+  /*0*/ APP_CREATE,
+  /*1*/ APP_CREATE_RESPONSE,
+  /*2*/ APP_PING,
+  /*3*/ APP_PING_RESPONSE,
+  /*4*/ APP_START,
+  /*5*/ APP_START_RESPONSE,
+  /*6*/ APP_STOP,
+  /*7*/ APP_STOP_RESPONSE,
+  /*8*/ APP_DESTROY,
+  /*9*/ APP_DESTROY_RESPONSE,
+  /*10*/ APP_GREET,
+  /*11*/ APP_GREET_RESPONSE,
+  /*12*/ ONIX_REMOTE_CALL_STREAM,
+  /*13*/ ONIX_REMOTE_CALL_PROCEDURE,
+  /*14*/ ONIX_REMOTE_CALL_PROCEDURE_RESPONSE,
 }
 /**
  * @author Jonathan Casarrubias
@@ -155,25 +195,6 @@ export interface IAppDirectory {
  */
 export interface IComponentDirectory {
   [key: string]: any;
-}
-/**
- * @interface IRequest
- * @author Jonathan Casarrubias
- * @description IRequest inteface (TODO IMPLEMENT WHEN CREATING SDK)
- */
-export interface IRequest {
-  metadata: {[key: string]: any; stream: boolean};
-  payload: any;
-}
-/**
- * @interface OnixMessage
- * @author Jonathan Casarrubias
- * @description OnixMessage inteface for internal (OS Event communication)
- */
-export interface OnixMessage {
-  uuid: string;
-  rpc: string;
-  request: IRequest;
 }
 /**
  * @interface IMetaData
@@ -383,29 +404,6 @@ export interface OnixHTTPRequest extends http.IncomingMessage {
 
 export interface IViewRenderer {
   process(view: string, args: Directory): string;
-}
-
-/**
- * @author Jonathan Casarrubias
- * @enum OperationType
- * @description Enum used for system level operations.
- */
-export enum OperationType {
-  /*0*/ APP_CREATE,
-  /*1*/ APP_CREATE_RESPONSE,
-  /*2*/ APP_PING,
-  /*3*/ APP_PING_RESPONSE,
-  /*4*/ APP_START,
-  /*5*/ APP_START_RESPONSE,
-  /*6*/ APP_STOP,
-  /*7*/ APP_STOP_RESPONSE,
-  /*8*/ APP_DESTROY,
-  /*9*/ APP_DESTROY_RESPONSE,
-  /*10*/ APP_GREET,
-  /*11*/ APP_GREET_RESPONSE,
-  /*12*/ ONIX_REMOTE_CALL_STREAM,
-  /*13*/ ONIX_REMOTE_CALL_PROCEDURE,
-  /*14*/ ONIX_REMOTE_CALL_PROCEDURE_RESPONSE,
 }
 /**
  * @author Jonathan Casarrubias

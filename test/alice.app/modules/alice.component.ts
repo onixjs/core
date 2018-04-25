@@ -10,7 +10,5 @@ export class AliceComponent implements IComponent {
   init() {
     console.log('Bob Component is Alive');
   }
-  destroy() {
-    throw new Error('Method not implemented.');
-  }
+  destroy() {}
 }

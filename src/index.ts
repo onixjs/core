@@ -14,7 +14,13 @@ export * from './core';
 export * from './utils';
 export * from './decorators';
 export * from './interfaces';
+import * as fs from 'fs';
+import * as http from 'http';
+import * as https from 'https';
+import * as Router from 'router';
+import * as finalhandler from 'finalhandler';
 import {Utils} from '@onixjs/sdk/dist/utils';
+import {HostBroker} from './core/host.broker';
 /**
  * @class OnixJS
  * @author Jonathan Casarrubias <gh: mean-expert-official>
@@ -33,12 +39,19 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.19';
+    return '1.0.0-alpha.20';
   }
   /**
-   * @property server
+   * @property router
+   * @description System level router, will provider
+   * middleware implementation for cross-compatibility.
    */
-  private _schemaProvider: SchemaProvider;
+  public router: Router = new Router();
+  /**
+   * @property server
+   * @description http server
+   */
+  private server: http.Server | https.Server;
   /**
    * @property apps
    */
@@ -53,6 +66,9 @@ export class OnixJS {
    */
   constructor(public config: OnixConfig = {cwd: process.cwd(), port: 3000}) {
     this.config = Object.assign({cwd: process.cwd(), port: 3000}, config);
+    // Listener for closing process
+    process.on('exit', () => this.stop());
+    // Log Onix Version
     console.info('Loading Onix Server Version: ', this.version);
   }
   /**
@@ -70,12 +86,26 @@ export class OnixJS {
         throw new Error(
           `OnixJS Error: Trying to ping unexisting app "${name}".`,
         );
-      this._apps[name].process.on('message', (operation: IAppOperation) => {
-        if (operation.type === OperationType.APP_PING_RESPONSE) {
-          resolve(<IAppConfig>operation.message);
+      const operation: IAppOperation = {
+        uuid: Utils.uuid(),
+        type: OperationType.APP_PING,
+        message: {
+          rpc: 'ping',
+          request: {
+            metadata: {},
+            payload: {},
+          },
+        },
+      };
+      this._apps[name].process.on('message', (response: IAppOperation) => {
+        if (
+          response.uuid === operation.uuid &&
+          response.type === OperationType.APP_PING_RESPONSE
+        ) {
+          resolve(<IAppConfig>response.message.request.payload);
         }
       });
-      this._apps[name].process.send({type: OperationType.APP_PING});
+      this._apps[name].process.send(operation);
     });
   }
   /**
@@ -93,18 +123,30 @@ export class OnixJS {
       Object.keys(this._apps).map(
         (name: string) =>
           new Promise<boolean[]>((resolve, reject) => {
+            const operation: IAppOperation = {
+              uuid: Utils.uuid(),
+              type: OperationType.APP_GREET,
+              message: {
+                rpc: '[apps].isAlive', // [apps] will be overriden inside each app
+                request: {
+                  metadata: {},
+                  payload: apps,
+                },
+              },
+            };
             this._apps[name].process.on(
               'message',
-              (operation: IAppOperation) => {
-                if (operation.type === OperationType.APP_GREET_RESPONSE) {
-                  resolve(<boolean[]>operation.message);
+              (response: IAppOperation) => {
+                if (
+                  response.uuid === operation.uuid &&
+                  response.type === OperationType.APP_GREET_RESPONSE
+                ) {
+                  resolve(<boolean[]>response.message.request.payload);
                 }
               },
             );
-            this._apps[name].process.send({
-              type: OperationType.APP_GREET,
-              message: apps,
-            });
+            // Send Greet Operation
+            this._apps[name].process.send(operation);
           }),
       ),
     );
@@ -148,31 +190,39 @@ export class OnixJS {
       if (this._apps[name]) {
         reject(new Error('OnixJS Error: Trying to add duplicated application'));
       } else {
-        // Create a child process for this new app
-        this._apps[name] = {process: fork(`${this.config.cwd}/${directory}`)};
-        // Create listener for application messages
-        this._apps[name].process.on(
-          'message',
-          async (operation: IAppOperation) => {
-            switch (operation.type) {
-              case OperationType.APP_CREATE_RESPONSE:
-                //store app config for client management
-                this._apps[name].config = operation.message;
-                resolve(this._apps[name].process);
-                break;
-            }
-          },
-        );
-        // Create Application Instance (Signal)
-        // Must Follow App Operation
-        this._apps[name].process.send(<IAppOperation>{
+        // Create Application Operation Object
+        const operation: IAppOperation = <IAppOperation>{
+          // Set UUID
+          uuid: Utils.uuid(),
+          // Set App Create Operation
           type: OperationType.APP_CREATE,
           // Send host level parameters here
           message: {
-            port,
-            network: {disabled: disableNetwork},
+            request: {
+              payload: {
+                port,
+                network: {disabled: disableNetwork},
+              },
+            },
           },
+        };
+        // Create a child process for this new app
+        this._apps[name] = {process: fork(`${this.config.cwd}/${directory}`)};
+        // Create listener for application messages
+        this._apps[name].process.on('message', (response: IAppOperation) => {
+          if (
+            response.type === OperationType.APP_CREATE_RESPONSE &&
+            operation.uuid === response.uuid
+          ) {
+            // store app config for client management
+            this._apps[name].config = response.message.request.payload;
+            // resolve process
+            resolve();
+          }
         });
+        // Create Application Instance (Signal)
+        // Must Follow App Operation
+        this._apps[name].process.send(operation);
       }
     });
   }
@@ -231,36 +281,31 @@ export class OnixJS {
    * all the loaded child applications.
    */
   async start(): Promise<OperationType.APP_START_RESPONSE[]> {
-    return (
-      Promise.all(
-        // Concatenate an array of promises, starting from Onix Server,
-        // Then map each app reference to create promises for start operation.
-        Object.keys(this._apps).map((name: string) => {
-          return new Promise<OperationType.APP_START_RESPONSE>(
-            (resolve, reject) => {
-              this._apps[name].process.on(
-                'message',
-                (operation: IAppOperation) => {
-                  if (operation.type === OperationType.APP_START_RESPONSE) {
-                    resolve(OperationType.APP_START_RESPONSE);
-                  }
-                },
-              );
-              this._apps[name].process.send({type: OperationType.APP_START});
-            },
-          );
-        }),
-      )
-        // Once every app is loaded, then we start the system server
-        .then(
-          (res: OperationType.APP_START_RESPONSE[]) =>
-            new Promise<OperationType.APP_START_RESPONSE[]>(
-              async (resolve, reject) => {
-                await this.startSystemServer();
-                resolve(res);
+    return Promise.all(
+      // Concatenate an array of promises, starting from Onix Server,
+      // Then map each app reference to create promises for start operation.
+      Object.keys(this._apps).map(
+        (name: string) =>
+          new Promise<OperationType.APP_START_RESPONSE>((resolve, reject) => {
+            this._apps[name].process.on(
+              'message',
+              (operation: IAppOperation) => {
+                if (operation.type === OperationType.APP_START_RESPONSE) {
+                  resolve(OperationType.APP_START_RESPONSE);
+                }
               },
-            ),
-        )
+            );
+            this._apps[name].process.send({type: OperationType.APP_START});
+          }),
+      ),
+    ).then(
+      (res: OperationType.APP_START_RESPONSE[]) =>
+        new Promise<OperationType.APP_START_RESPONSE[]>(
+          async (resolve, reject) => {
+            await this.startSystemServer();
+            resolve(res);
+          },
+        ),
     );
   }
   /**
@@ -294,7 +339,7 @@ export class OnixJS {
     ).then(
       (res: OperationType.APP_STOP_RESPONSE[]) =>
         new Promise<OperationType.APP_STOP_RESPONSE[]>((resolve, reject) => {
-          this._schemaProvider.stop(() => resolve(res));
+          this.server.close(() => resolve(res));
         }),
     );
   }
@@ -304,14 +349,49 @@ export class OnixJS {
    * @license MIT
    * @description This method will start the systemm level server.
    */
-  private async startSystemServer(): Promise<OperationType.APP_START_RESPONSE> {
-    return new Promise<OperationType.APP_START_RESPONSE>(
-      async (resolve, reject) => {
-        this._schemaProvider = new SchemaProvider(this);
-        this._schemaProvider.start();
-        resolve(OperationType.APP_START_RESPONSE);
-      },
-    );
+  private async startSystemServer() {
+    return new Promise(resolve => {
+      // Setup server
+      this.server = this.createServer();
+      // Create schema provider route
+      new SchemaProvider(this.router, this._apps);
+      // Listen Server Port
+      this.server.listen(this.config.port);
+      // Create schema provider route
+      new HostBroker(this.server, this._apps);
+      // Indicate the ONIX SERVER is now listening on the given port
+      console.log(`ONIXJS HOST LOADED: Listening on port ${this.config.port}`);
+      // Resolve Server
+      resolve();
+    });
+  }
+
+  private createServer() {
+    // Return an HTTP Server Instance
+    return this.config.port === 443
+      ? // Create secure HTTPS Connection
+        https.createServer(
+          {
+            key: fs.readFileSync(
+              this.config.network && this.config.network!.ssl
+                ? this.config.network!.ssl!.key
+                : './ssl/file.key',
+            ),
+            cert: fs.readFileSync(
+              this.config.network && this.config.network!.ssl
+                ? this.config.network!.ssl!.cert
+                : './ssl/file.cert',
+            ),
+          },
+          (req, res) => this.listener(req, res),
+        )
+      : // Create insecure HTTP Connection
+        http.createServer((req, res) => this.listener(req, res));
+  }
+
+  private listener(req: http.IncomingMessage, res: http.ServerResponse) {
+    // Here you might need to do something dude...
+    this.router(req, res, finalhandler(req, res));
   }
 
   public apps(): IAppDirectory {
