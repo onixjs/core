@@ -47,8 +47,7 @@ test('Core: AppFactory creates an Application.', async t => {
   const instance: AppFactory = new AppFactory(MyApp);
   instance.config = {modules: []};
   instance.notifier = new AppNotifier();
-  const result = await instance.setup();
-  console.log('A RESULT: ', result);
+  await instance.setup();
   t.truthy(instance.app.start);
   t.truthy(instance.app.stop);
   t.truthy(instance.app.isAlive);
@@ -159,7 +158,7 @@ test('Core: CallResponser invalid call.', async t => {
   factory.config = {network: {disabled: true}, modules: [MyModule]};
   factory.notifier = new AppNotifier();
   await factory.setup();
-  const responser: CallResponser = new CallResponser(factory, MyApp);
+  const responser: CallResponser = new CallResponser(factory);
   const error = await t.throws(
     responser.process({
       uuid: Utils.uuid(),
@@ -195,7 +194,7 @@ test('Core: CallResponser invalid call.', async t => {
   factory.config = {network: {disabled: true}, modules: [MyModule]};
   factory.notifier = new AppNotifier();
   await factory.setup();
-  const responser: CallResponser = new CallResponser(factory, MyApp);
+  const responser: CallResponser = new CallResponser(factory);
   const error = await t.throws(
     responser.process({
       uuid: Utils.uuid(),
@@ -231,7 +230,7 @@ test('Core: CallResponser invalid call.', async t => {
   factory.config = {network: {disabled: true}, modules: [MyModule]};
   factory.notifier = new AppNotifier();
   await factory.setup();
-  const responser: CallResponser = new CallResponser(factory, MyApp);
+  const responser: CallResponser = new CallResponser(factory);
   const error = await t.throws(
     responser.process({
       uuid: Utils.uuid(),
@@ -273,7 +272,7 @@ test('Core: CallResponser Hooks.', async t => {
   factory.config = {network: {disabled: true}, modules: [MyModule]};
   factory.notifier = new AppNotifier();
   await factory.setup();
-  const responser: CallResponser = new CallResponser(factory, MyApp);
+  const responser: CallResponser = new CallResponser(factory);
   const result = await responser.process({
     uuid: Utils.uuid(),
     type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
@@ -318,7 +317,7 @@ test('Core: CallResponser Hooks.', async t => {
   factory.config = {network: {disabled: true}, modules: [MyModule]};
   factory.notifier = new AppNotifier();
   await factory.setup();
-  const streamer: CallStreamer = new CallStreamer(factory, MyApp);
+  const streamer: CallStreamer = new CallStreamer(factory);
   streamer.register(
     {
       uuid: Utils.uuid(),
@@ -333,10 +332,7 @@ test('Core: CallResponser Hooks.', async t => {
     },
     result => {
       if (result) {
-        console.log('THE STREAM RESULT', result);
         t.is(result.text, 'Hello Streamer');
-      } else {
-        console.log('WHY IS RUNNING 2 TIMES');
       }
     },
   );
@@ -357,7 +353,7 @@ test('Core: CallStreamer invalid call.', async t => {
   factory.config = {network: {disabled: true}, modules: [MyModule]};
   factory.notifier = new AppNotifier();
   await factory.setup();
-  const streamer: CallStreamer = new CallStreamer(factory, MyApp);
+  const streamer: CallStreamer = new CallStreamer(factory);
   streamer.register(
     {
       uuid: Utils.uuid(),

@@ -33,11 +33,6 @@ export class HostBroker {
   handle(ws: WebSocket, operation: IAppOperation) {
     // Route Message to the right application
     const callee: string = operation.message.rpc.split('.').shift() || '';
-    console.log(
-      'Onix server caller: ',
-      operation.message.request.metadata.caller,
-    );
-    console.log('Onix server callee: ', callee);
     if (this.apps[callee]) {
       this.apps[callee].process.on('message', (response: IAppOperation) => {
         if (operation.uuid === response.uuid) {

@@ -23,7 +23,6 @@ export class LifeCycle {
     message: OnixMessage,
     method: () => Promise<any>,
   ): Promise<any> {
-    console.log('Before App Method Call');
     // Before Method Call
     const result: any = await method();
     // After Method Call
@@ -44,7 +43,6 @@ export class LifeCycle {
     message: OnixMessage,
     method: () => Promise<any>,
   ): Promise<any> {
-    console.log('Before Module Method Call');
     // Before Method Call
     const result: any = await method();
     // After Method Call
@@ -65,7 +63,6 @@ export class LifeCycle {
     message: OnixMessage,
     method: () => Promise<any>,
   ): Promise<any> {
-    console.log('Before Component Method Call');
     // Before Method Call
     const result: any = await method();
     // After Method Call
@@ -86,10 +83,8 @@ export class LifeCycle {
     message: OnixMessage,
     stream: (handler: (data) => any) => any,
   ): Promise<any> {
-    console.log('Before Module Method Stream');
     // Before Method Stream (Do something with request)
     stream(data => {
-      console.log('After Module Method Stream', data);
       // Afet method stream
       return data;
     });
@@ -109,11 +104,9 @@ export class LifeCycle {
     message: OnixMessage,
     stream: (handler: (data) => any) => any,
   ): Promise<any> {
-    console.log('Before Component Method Stream');
     // Before Method Stream (Do something with request)
     stream(data => {
       // Afet method stream
-      console.log('After Component Method Stream', data);
       return data;
     });
   }

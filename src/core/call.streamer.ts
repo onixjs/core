@@ -1,5 +1,5 @@
 import {AppFactory} from './app.factory';
-import {AppConstructor, IAppOperation} from '../interfaces';
+import {IAppOperation} from '../interfaces';
 import {LifeCycle} from '.';
 import {ReflectionKeys} from '..';
 
@@ -15,7 +15,7 @@ export class CallStreamer {
    * @param factory
    * @param AppClass
    */
-  constructor(private factory: AppFactory, private AppClass: AppConstructor) {}
+  constructor(private factory: AppFactory) {}
   /**
    * @method register
    * @param operation
@@ -23,9 +23,6 @@ export class CallStreamer {
    * to send back an answer.
    */
   register(operation: IAppOperation, handler) {
-    console.log(
-      `Onix callee app ${this.AppClass.name} got remote stream request`,
-    );
     // Get segments from rpc endpoint
     let scope,
       method: Function | null = null,

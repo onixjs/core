@@ -7,8 +7,6 @@ import {IComponent} from '../../../src/index';
  * for testing purposes, storing Bob objects in memory.
  */
 export class BobComponent implements IComponent {
-  init() {
-    console.log('Bob Component is Alive');
-  }
+  init() {}
   destroy() {}
 }

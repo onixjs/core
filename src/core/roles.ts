@@ -23,7 +23,6 @@ export namespace Roles {
      * verification business logic. In this case any caller is allowed
      *
     async access(name: string, request: any): Promise<boolean> {
-      console.log(request);
       return new Promise<boolean>((resolve, reject) => resolve(true));
     }
   }
@@ -50,9 +49,6 @@ export class RoleMatch {
       );
       // Every RPC Method is closed by default, if there are no rules, then there is no access
       if (rules.length === 0) {
-        console.log(
-          `Onix RoleMatch verification fail for method ${name}, no acl rules were found.`,
-        );
         resolve(false);
       }
       // If there are rules for this method then lets execute those

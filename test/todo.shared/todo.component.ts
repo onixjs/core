@@ -21,7 +21,6 @@ import {EventEmitter} from 'events';
     // before call
     const result = await method();
     // after call
-    console.log('Custom Logger: ', result);
     return result;
   },
 })

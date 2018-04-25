@@ -35,7 +35,6 @@ export class SchemaProvider {
       res.setHeader('Content-Type', 'application/json');
       res.writeHead(200, {'Content-Type': 'application/json'});
       const schema = JSON.stringify(configs);
-      console.log('THE GOD DAMN SCHEMA: ', schema);
       res.end(schema);
     });
   }

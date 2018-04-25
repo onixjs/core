@@ -96,8 +96,6 @@ test('Onix rpc component methods from client', async t => {
         t.truthy(operation.message.request.payload._id);
         await onix.stop();
       }
-    } else {
-      console.log('NO VALID JSON DATA: ', data);
     }
   });
 

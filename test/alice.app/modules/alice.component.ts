@@ -7,8 +7,6 @@ import {IComponent} from '../../../src/index';
  * for testing purposes, storing Alice objects in memory.
  */
 export class AliceComponent implements IComponent {
-  init() {
-    console.log('Bob Component is Alive');
-  }
+  init() {}
   destroy() {}
 }
