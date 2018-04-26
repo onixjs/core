@@ -9,18 +9,19 @@ import {
   OnixConfig,
 } from './interfaces';
 import {SchemaProvider} from './core/schema.provider';
-// Export all core modules & interfaces
 export * from './core';
 export * from './utils';
 export * from './decorators';
 export * from './interfaces';
 import * as fs from 'fs';
+import * as path from 'path';
 import * as http from 'http';
 import * as https from 'https';
 import * as Router from 'router';
 import * as finalhandler from 'finalhandler';
 import {Utils} from '@onixjs/sdk/dist/utils';
 import {HostBroker} from './core/host.broker';
+import {promisify} from 'util';
 /**
  * @class OnixJS
  * @author Jonathan Casarrubias <gh: mean-expert-official>
@@ -39,7 +40,7 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.20.1';
+    return '1.0.0-alpha.21';
   }
   /**
    * @property router
@@ -346,6 +347,19 @@ export class OnixJS {
     return new Promise(resolve => {
       // Setup server
       this.server = this.createServer();
+      // Verify if there is an SSL Activation File
+      // To active the a HOST SSL Domain
+      if (
+        this.config &&
+        this.config.network! &&
+        this.config.network!.ssl! &&
+        this.config.network!.ssl!.activation &&
+        this.config.network!.ssl!.activation!.path &&
+        this.config.network!.ssl!.activation!.endpoint
+      ) {
+        console.log('SERVING ACTIVATION FILE');
+        this.serveActivationFile();
+      }
       // Create schema provider route
       new SchemaProvider(this.router, this._apps);
       // Listen Server Port
@@ -358,7 +372,76 @@ export class OnixJS {
       resolve();
     });
   }
-
+  /**
+   * @method serveActivationFile
+   * @description This method is a helper in order to serve activation ssl files.
+   * Since a SOA Project will always require a specific domain for the OnixJS Host.
+   * Sometimes activation require to publish .well-known/activationfile.txt this
+   * method will help developers to activate their SSL Certificates.
+   *
+   * Note: SOA Services Domains must be activated within their own router. In other words
+   * you need to create a component and use the @Router.get('.well-known/activationfile.txt')
+   * decorator to provide your own activation files when deciding to expose a service over network.
+   **/
+  serveActivationFile() {
+    this.router.get(
+      this.config.network!.ssl!.activation!.endpoint,
+      async (req, res) => {
+        const pathname: string = path.join(
+          this.config.cwd || process.cwd(),
+          this.config.network!.ssl!.activation!.path || '/',
+        );
+        // Promisify exists and readfile
+        const AsyncExists = promisify(fs.exists);
+        const AsyncReadFile = promisify(fs.readFile);
+        try {
+          // Verify the pathname exists
+          const exist: boolean = await AsyncExists(pathname);
+          // If not, return 404 code
+          if (!exist) {
+            // if the file is not found, return 404
+            res.statusCode = 404;
+            return res.end(
+              JSON.stringify({
+                code: res.statusCode,
+                message: `Activation file not found.`,
+              }),
+            );
+          }
+          try {
+            // read file from file system
+            const data = await AsyncReadFile(pathname);
+            // Set response headers
+            res.setHeader('Content-type', 'text/html');
+            res.end(data.toString());
+          } catch (e) {
+            res.setHeader('Content-type', 'application/json');
+            res.end(
+              JSON.stringify({
+                error: 404,
+                message: 'Oops!!! something went wrong',
+              }),
+            );
+          }
+        } catch (e) {
+          res.setHeader('Content-type', 'application/json');
+          res.end(
+            JSON.stringify({
+              error: 404,
+              message: 'Oops!!! something went wrong',
+            }),
+          );
+        }
+      },
+    );
+  }
+  /**
+   * @method createServer
+   * @description This method simply creates an HTTP(S) Server that will be used as
+   * the OnixJS HTTP Server. It must not be confused with each SOA Service Domain.
+   * Since SOA Services might use their own domain -or not- will require different
+   * activation files and ssl certificates.
+   **/
   private createServer() {
     // Return an HTTP Server Instance
     return this.config.port === 443
@@ -366,13 +449,17 @@ export class OnixJS {
         https.createServer(
           {
             key: fs.readFileSync(
-              this.config.network && this.config.network!.ssl
-                ? this.config.network!.ssl!.key
+              this.config.network &&
+              this.config.network!.ssl &&
+              this.config.network!.ssl!.key
+                ? this.config.network!.ssl!.key || ''
                 : './ssl/file.key',
             ),
             cert: fs.readFileSync(
-              this.config.network && this.config.network!.ssl
-                ? this.config.network!.ssl!.cert
+              this.config.network &&
+              this.config.network!.ssl &&
+              this.config.network!.ssl!.cert
+                ? this.config.network!.ssl!.cert || ''
                 : './ssl/file.cert',
             ),
           },
@@ -381,12 +468,22 @@ export class OnixJS {
       : // Create insecure HTTP Connection
         http.createServer((req, res) => this.listener(req, res));
   }
-
+  /**
+   * @method listener
+   * @param req
+   * @param res
+   * @description This method will define the final middleware when an HTTP
+   * request is called to the OnixJS Host.
+   */
   private listener(req: http.IncomingMessage, res: http.ServerResponse) {
     // Here you might need to do something dude...
     this.router(req, res, finalhandler(req, res));
   }
-
+  /**
+   * @method apps
+   * @description This method will return the configure application processes and
+   * configurations.
+   */
   public apps(): IAppDirectory {
     return this._apps;
   }
