@@ -307,8 +307,14 @@ export interface IRole {
 }
 
 export interface ISSlConfig {
-  key: string;
-  cert: string;
+  key?: string;
+  cert?: string;
+  // Serve SSL Activation File (OnixJS Host)
+  // will usually serve .well-knon/activationfile.txt
+  activation?: {
+    endpoint: string;
+    path: string;
+  };
 }
 
 export interface DomainConfig {

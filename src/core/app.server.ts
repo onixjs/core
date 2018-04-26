@@ -255,13 +255,17 @@ export class AppServer {
         https.createServer(
           {
             key: fs.readFileSync(
-              this.config.network && this.config.network!.ssl
-                ? this.config.network!.ssl!.key
+              this.config.network &&
+              this.config.network!.ssl &&
+              this.config.network!.ssl!.key
+                ? this.config.network!.ssl!.key || ''
                 : './ssl/file.key',
             ),
             cert: fs.readFileSync(
-              this.config.network && this.config.network!.ssl
-                ? this.config.network!.ssl!.cert
+              this.config.network &&
+              this.config.network!.ssl &&
+              this.config.network!.ssl!.cert
+                ? this.config.network!.ssl!.cert || ''
                 : './ssl/file.cert',
             ),
           },

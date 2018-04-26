@@ -174,11 +174,14 @@ test('Core: CallResponser invalid call.', async t => {
     'OnixJS Error: RPC Call is invalid "something.really.weird.to.call.which.is.invalid"',
   );
 });
-// Test CallResponser invalid call
-test('Core: CallResponser invalid call.', async t => {
+// Test CallResponser valid call
+test('Core: CallResponser valid call.', async t => {
+  @Component({})
   class MyComponent {
     @RPC()
-    testRPC() {}
+    testRPC() {
+      return 'ALO WORLD';
+    }
     @Stream()
     testSTREAM() {}
   }
@@ -195,20 +198,15 @@ test('Core: CallResponser invalid call.', async t => {
   factory.notifier = new AppNotifier();
   await factory.setup();
   const responser: CallResponser = new CallResponser(factory);
-  const error = await t.throws(
-    responser.process({
-      uuid: Utils.uuid(),
-      type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
-      message: {
-        rpc: 'MyApp.MyModule.MyComponent.NotExistingMethod',
-        request: <IRequest>{},
-      },
-    }),
-  );
-  t.is(
-    error.message,
-    'OnixJS Error: RPC Call is invalid "MyApp.MyModule.MyComponent.NotExistingMethod"',
-  );
+  const result = await responser.process({
+    uuid: Utils.uuid(),
+    type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
+    message: {
+      rpc: 'MyApp.MyModule.MyComponent.testRPC',
+      request: <IRequest>{},
+    },
+  });
+  t.is(result, 'ALO WORLD');
 });
 // Test CallResponser invalid call
 test('Core: CallResponser invalid call.', async t => {
@@ -454,6 +452,38 @@ test('Core: host boot.', async t => {
     {cwd},
   );
   await t.notThrows(instance.run());
+  await instance.host.stop();
+});
+// Test host boot ssl activation file
+test('Core: host boot ssl activation file.', async t => {
+  const instance: HostBoot = new HostBoot(
+    {
+      apps: ['TodoApp@todo.app:8077'],
+    },
+    {
+      cwd,
+      port: 5000,
+      network: {
+        disabled: false,
+        ssl: {
+          activation: {
+            endpoint: '/.well-known/activation.txt',
+            path: '../../test/activation.txt',
+          },
+        },
+      },
+    },
+  );
+  await instance.run();
+  // Create HTTP Client
+  const client: NodeJS.HTTP = new NodeJS.HTTP();
+  // Call the decorated JSON
+  const result: any = <any>await client.get(
+    'http://127.0.0.1:5000/.well-known/activation.txt',
+  );
+  console.log('THE RESULT: ', result);
+  // Test Service
+  t.is(result, 'activation-hello-world');
   await instance.host.stop();
 });
 // Test host boot throws
