@@ -40,7 +40,7 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.21';
+    return '1.0.0-alpha.21.3';
   }
   /**
    * @property router
@@ -68,7 +68,14 @@ export class OnixJS {
   constructor(public config: OnixConfig = {cwd: process.cwd(), port: 3000}) {
     this.config = Object.assign({cwd: process.cwd(), port: 3000}, config);
     // Listener for closing process
-    process.on('exit', () => this.stop());
+    process.on('exit', async () => {
+      // Signal child processes to stop their internal processes
+      await this.stop();
+      // Kill'em all right now.
+      Object.keys(this._apps).forEach(reference =>
+        this._apps[reference].process.kill('SIGHUP'),
+      );
+    });
     // Log Onix Version
     console.info('Loading Onix Server Version: ', this.version);
   }
@@ -412,7 +419,7 @@ export class OnixJS {
             // read file from file system
             const data = await AsyncReadFile(pathname);
             // Set response headers
-            res.setHeader('Content-type', 'text/html');
+            res.setHeader('Content-type', 'text/plain');
             res.end(data.toString());
           } catch (e) {
             res.setHeader('Content-type', 'application/json');
