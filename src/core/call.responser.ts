@@ -1,5 +1,7 @@
-import {ReflectionKeys, IAppOperation} from '../interfaces';
+import {ReflectionKeys, IAppOperation, IComponentConfig} from '../interfaces';
 import {AppFactory, LifeCycle} from '../core';
+import {GroupMatch} from './acl.group.match';
+//import { RoleMatch } from './roles';
 /**
  * @class CallResponse
  * @author Jonathan Casarrubias
@@ -44,7 +46,8 @@ export class CallResponser {
       let scope,
         method: Function | null = null,
         mainHook: Function = () => null,
-        slaveHook: Function | null = null;
+        slaveHook: Function | null = null,
+        config: IComponentConfig = {};
       // If segments are exactly 2, then it is an application level call
       // Only god can remotly execute this type of calls.
       if (segments.length === 2) {
@@ -71,12 +74,9 @@ export class CallResponser {
           segments[3]
         ];
         if (scope && method) {
-          const componentConfig = Reflect.getMetadata(
-            ReflectionKeys.COMPONENT_CONFIG,
-            scope,
-          );
-          slaveHook = componentConfig.lifecycle
-            ? componentConfig.lifecycle
+          config = Reflect.getMetadata(ReflectionKeys.COMPONENT_CONFIG, scope);
+          slaveHook = config.lifecycle
+            ? config.lifecycle
             : this.lifecycle.onComponentMethodCall;
         }
       }
@@ -89,35 +89,47 @@ export class CallResponser {
         );
         return;
       }
-      // Execute main hook, might be app/system or module level.
-      const result = await mainHook(
-        (name: string) => this.factory.scopes[segments[1]].get(name),
-        operation.message,
-        async (): Promise<any> => {
-          // If there is a custom component level hook for this call
-          // then execute it first.
-          if (slaveHook) {
-            // Do whatever the developer defined in component config
-            return await slaveHook(
-              (name: string) => this.factory.scopes[segments[1]].get(name),
-              operation.message,
-              async (): Promise<any> => {
-                // Ok cool, let me finish. lol (freaking genius)
-                return method
-                  ? await method.call(scope, operation.message.request.payload)
-                  : null;
-              },
-            );
-          } else {
-            // Else just call the requested method now.
-            return method
-              ? await method.call(scope, operation.message.request.payload)
-              : null;
-          }
-        },
-      );
-      // Resolve promise
-      resolve(result);
+      // Verify the call request matches the ACL Rules
+      if (GroupMatch.verify(method.name, operation, config)) {
+        // Execute main hook, might be app/system or module level.
+        const result = await mainHook(
+          (name: string) => this.factory.scopes[segments[1]].get(name),
+          operation.message,
+          async (): Promise<any> => {
+            // If there is a custom component level hook for this call
+            // then execute it first.
+            if (slaveHook) {
+              // Do whatever the developer defined in component config
+              return await slaveHook(
+                (name: string) => this.factory.scopes[segments[1]].get(name),
+                operation.message,
+                async (): Promise<any> => {
+                  // Ok cool, let me finish. lol (freaking genius)
+                  return method
+                    ? await method.call(
+                        scope,
+                        operation.message.request.payload,
+                      )
+                    : null;
+                },
+              );
+            } else {
+              // Else just call the requested method now.
+              return method
+                ? await method.call(scope, operation.message.request.payload)
+                : null;
+            }
+          },
+        );
+        // Resolve promise
+        resolve(result);
+      } else {
+        // No access for this method
+        resolve({
+          code: 401,
+          message: "You don't have access to execute this method",
+        });
+      }
     });
   }
 }

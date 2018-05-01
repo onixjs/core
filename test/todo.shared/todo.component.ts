@@ -5,6 +5,7 @@ import {Component} from '../../src/decorators/component';
 import {Inject} from '../../src/decorators/inject';
 import {RPC, Stream} from '../../src/decorators';
 import {EventEmitter} from 'events';
+import {AllowEveryone} from '../../src/core/acl.everyone';
 /**
  * @class TodoComponent
  * @author Jonathan Casarrubias
@@ -15,6 +16,8 @@ import {EventEmitter} from 'events';
  * It must implement the IComponent interface.
  */
 @Component({
+  // add acl rules
+  acl: [AllowEveryone],
   // Optional component level lifecycle
   // will execute on every RPC Call, do your magic here. :)
   lifecycle: async (app, metadata, method): Promise<any> => {

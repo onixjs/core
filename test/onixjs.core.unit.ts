@@ -27,6 +27,7 @@ import {
   ViewRenderer,
   Constructor,
   Router,
+  IComponentConfig,
 } from '../src';
 import {LifeCycle} from '../src/core/lifecycle';
 import {Injector} from '../src/core/injector';
@@ -39,6 +40,8 @@ import {CallStreamer} from '../src/core/call.streamer';
 import {NodeJS} from '@onixjs/sdk/dist/core/node.adapters';
 import {Utils} from '@onixjs/sdk/dist/utils';
 import {Mongoose, Schema} from 'mongoose';
+import {GroupMatch} from '../src/core/acl.group.match';
+import {AllowEveryone} from '../src/core/acl.everyone';
 const cwd = path.join(process.cwd(), 'dist', 'test');
 // Test AppFactory
 
@@ -481,7 +484,6 @@ test('Core: host boot ssl activation file.', async t => {
   const result: any = <any>await client.get(
     'http://127.0.0.1:5000/.well-known/activation.txt',
   );
-  console.log('THE RESULT: ', result);
   // Test Service
   t.is(result, 'activation-hello-world');
   await instance.host.stop();
@@ -1277,4 +1279,29 @@ test('Core: Notifier.', async t => {
   instance.test().then(r => t.true(r), e => console.log(e));
   // Send test event
   notifier.emit(event, true);
+});
+// Test acl.group.match
+test('CORE: ACL Group Match', async t => {
+  // SOME DUMMY METHOD NAME
+  const name: string = 'somemethod';
+  // SOME DUMMY OPERATION
+  const operation: IAppOperation = {
+    uuid: Utils.uuid(),
+    type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
+    message: {
+      rpc: name,
+      request: {
+        metadata: {},
+        payload: {},
+      },
+    },
+  };
+  // SOME DUMMY COMPONENT CONFIG
+  const config: IComponentConfig = {
+    acl: [AllowEveryone],
+  };
+  // VERIFY ACCESS
+  const hasAccess: boolean = await GroupMatch.verify(name, operation, config);
+  // TEST IF HAS ACCESS
+  t.true(hasAccess);
 });
