@@ -128,6 +128,7 @@ test('Onix rpc component stream', async t => {
     adapters: {
       http: NodeJS.HTTP,
       websocket: NodeJS.WebSocket,
+      storage: NodeJS.LocalStorage,
     },
   });
   // Init SDK

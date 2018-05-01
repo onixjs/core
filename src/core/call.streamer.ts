@@ -1,7 +1,8 @@
 import {AppFactory} from './app.factory';
-import {IAppOperation} from '../interfaces';
+import {IAppOperation, IComponentConfig} from '../interfaces';
 import {LifeCycle} from '.';
 import {ReflectionKeys} from '..';
+import {GroupMatch} from './acl.group.match';
 
 export class CallStreamer {
   /**
@@ -27,7 +28,9 @@ export class CallStreamer {
     let scope,
       method: Function | null = null,
       mainHook: Function = () => null,
-      slaveHook: Function | null = null;
+      slaveHook: Function | null = null,
+      config: IComponentConfig = {};
+
     const segments: string[] = operation.message.rpc.split('.');
     // Component level method, RPC Exposed
     if (segments.length !== 4) {
@@ -54,12 +57,9 @@ export class CallStreamer {
       scope = this.factory.app.modules[segments[1]][segments[2]];
       method = this.factory.app.modules[segments[1]][segments[2]][segments[3]];
       if (scope && method) {
-        const componentConfig = Reflect.getMetadata(
-          ReflectionKeys.COMPONENT_CONFIG,
-          scope,
-        );
-        slaveHook = componentConfig.lifecycle
-          ? componentConfig.lifecycle
+        config = Reflect.getMetadata(ReflectionKeys.COMPONENT_CONFIG, scope);
+        slaveHook = config.lifecycle
+          ? config.lifecycle
           : this.lifecycle.onComponentMethodStream;
       }
     }
@@ -71,45 +71,55 @@ export class CallStreamer {
         ),
       );
     }
-    // Default handler
-    const def = data => data;
-    // Execute main hook, might be app/system or module level.
-    mainHook(
-      (name: string) => this.factory.scopes[segments[1]].get(name),
-      operation.message,
-      masterSubHandler => {
-        masterSubHandler = masterSubHandler || def;
-        // If there is a custom component level hook for this call
-        // then execute it first.
-        if (slaveHook) {
-          // Do whatever the developer defined in component config
-          slaveHook(
-            (name: string) => this.factory.scopes[segments[1]].get(name),
-            operation.message,
-            slaveSubHandler => {
-              // No slave subhandler?
-              slaveSubHandler = slaveSubHandler || def;
-              // Ok cool, let me finish. lol (freaking genius)
-              method
-                ? method.call(
-                    scope,
-                    data => handler(slaveSubHandler(masterSubHandler(data))),
-                    operation.message.request.payload,
-                  )
-                : null;
-            },
-          );
-        } else {
-          // Else just call the requested method now.
-          method
-            ? method.call(
-                scope,
-                data => handler(masterSubHandler(data)),
-                operation.message.request.payload,
-              )
-            : null;
-        }
-      },
-    );
+
+    // Verify the call request matches the ACL Rules
+    if (GroupMatch.verify(method.name, operation, config)) {
+      // Default handler
+      const def = data => data;
+      // Execute main hook, might be app/system or module level.
+      mainHook(
+        (name: string) => this.factory.scopes[segments[1]].get(name),
+        operation.message,
+        masterSubHandler => {
+          masterSubHandler = masterSubHandler || def;
+          // If there is a custom component level hook for this call
+          // then execute it first.
+          if (slaveHook) {
+            // Do whatever the developer defined in component config
+            slaveHook(
+              (name: string) => this.factory.scopes[segments[1]].get(name),
+              operation.message,
+              slaveSubHandler => {
+                // No slave subhandler?
+                slaveSubHandler = slaveSubHandler || def;
+                // Ok cool, let me finish. lol (freaking genius)
+                method
+                  ? method.call(
+                      scope,
+                      data => handler(slaveSubHandler(masterSubHandler(data))),
+                      operation.message.request.payload,
+                    )
+                  : null;
+              },
+            );
+          } else {
+            // Else just call the requested method now.
+            method
+              ? method.call(
+                  scope,
+                  data => handler(masterSubHandler(data)),
+                  operation.message.request.payload,
+                )
+              : null;
+          }
+        },
+      );
+    } else {
+      // No access for this method
+      handler({
+        code: 401,
+        message: "You don't have access to execute this method",
+      });
+    }
   }
 }

@@ -250,8 +250,21 @@ export enum AccessType {
  * @description Interface used as contract when declaring
  * acl.
  */
-export interface IACL {
-  [key: string]: IACLRule;
+export interface IACL extends Array<new () => IACLRule> {}
+/**
+ * @interface IACLRule
+ * @author Jonathan Casarrubias
+ * @description Interface used as contract when declaring
+ * acl.
+ */
+export interface IACLRule {
+  access: number;
+  methods: string[];
+  groups: GroupList;
+}
+export interface GroupList extends Array<new () => IGroup> {}
+export interface IGroup {
+  access(request: IRequest, rule: AccessType): Promise<boolean> | boolean;
 }
 /**
  * @interface IComponentConfig
@@ -260,6 +273,10 @@ export interface IACL {
  * acl.
  */
 export interface IComponentConfig {
+  // Optional Access Control List
+  // If not ACL is provided, then all methods wont
+  // be public, by default all of them are closed
+  acl?: IACL;
   // Optional route path, will be used as base
   // For any HTTP endpoint declared within a component
   route?: string;
@@ -283,27 +300,6 @@ export interface IViewConfig {
   endpoint?: string;
   file?: string;
   method?: string;
-}
-
-/**
- * @interface IACLRule
- * @author Jonathan Casarrubias
- * @description Interface used as contract when declaring
- * acl.
- */
-export interface IACLRule {
-  access: number;
-  methods: string[];
-  roles: (new () => IRole)[];
-}
-/**
- * @interface IRole
- * @author Jonathan Casarrubias
- * @description Interface used as contract when declaring
- * acl.
- */
-export interface IRole {
-  access(name: string, request: any): Promise<boolean>;
 }
 
 export interface ISSlConfig {

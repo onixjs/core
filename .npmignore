@@ -1,4 +1,5 @@
 ./src
 ./test
+./sdk:storage
 ./dist/test
 ./dist6/test
