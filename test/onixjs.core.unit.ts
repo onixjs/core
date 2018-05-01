@@ -177,9 +177,45 @@ test('Core: CallResponser invalid call.', async t => {
     'OnixJS Error: RPC Call is invalid "something.really.weird.to.call.which.is.invalid"',
   );
 });
+// Test CallResponser not authorized call
+test('Core: CallResponser not authorized call.', async t => {
+  @Component({})
+  class MyComponent {
+    @RPC()
+    testRPC() {
+      return 'ALO WORLD';
+    }
+    @Stream()
+    testSTREAM() {}
+  }
+  @Module({
+    models: [],
+    renderers: [],
+    services: [],
+    components: [MyComponent],
+  })
+  class MyModule {}
+  class MyApp extends Application {}
+  const factory: AppFactory = new AppFactory(MyApp);
+  factory.config = {network: {disabled: true}, modules: [MyModule]};
+  factory.notifier = new AppNotifier();
+  await factory.setup();
+  const responser: CallResponser = new CallResponser(factory);
+  const result = await responser.process({
+    uuid: Utils.uuid(),
+    type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
+    message: {
+      rpc: 'MyApp.MyModule.MyComponent.testRPC',
+      request: <IRequest>{},
+    },
+  });
+  t.is(result.code, 401);
+});
 // Test CallResponser valid call
 test('Core: CallResponser valid call.', async t => {
-  @Component({})
+  @Component({
+    acl: [AllowEveryone],
+  })
   class MyComponent {
     @RPC()
     testRPC() {
@@ -250,6 +286,7 @@ test('Core: CallResponser invalid call.', async t => {
 // Test CallResponser Hooks
 test('Core: CallResponser Hooks.', async t => {
   @Component({
+    acl: [AllowEveryone],
     lifecycle: async function(app, metadata, method) {
       const methodResult = await method();
       return methodResult;
@@ -290,8 +327,58 @@ test('Core: CallResponser Hooks.', async t => {
   t.is(result.text, 'Hello Responser');
 });
 
-// Test CallResponser Hooks
-test('Core: CallResponser Hooks.', async t => {
+// Test CallStreamer Valid
+test('Core: CallStreamer Valid.', async t => {
+  @Component({
+    acl: [AllowEveryone],
+    lifecycle: async function(app, metadata, method) {
+      const methodResult = await method();
+      return methodResult;
+    },
+  })
+  class MyComponent {
+    @Stream()
+    test(stream) {
+      return stream({
+        text: 'Hello Streamer',
+      });
+    }
+  }
+  @Module({
+    models: [],
+    renderers: [],
+    services: [],
+    components: [MyComponent],
+  })
+  class MyModule {}
+  class MyApp extends Application {}
+  const factory: AppFactory = new AppFactory(MyApp);
+  factory.config = {network: {disabled: true}, modules: [MyModule]};
+  factory.notifier = new AppNotifier();
+  await factory.setup();
+  const streamer: CallStreamer = new CallStreamer(factory);
+  await streamer.register(
+    {
+      uuid: Utils.uuid(),
+      type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
+      message: {
+        rpc: 'MyApp.MyModule.MyComponent.test',
+        request: <IRequest>{
+          metadata: {stream: true},
+          payload: {},
+        },
+      },
+    },
+    result => {
+      if (result) {
+        t.is(result.text, 'Hello Streamer');
+      }
+    },
+  );
+});
+
+// Test CallStreamer Not Authorized
+test('Core: CallStreamer Not Authorized.', async t => {
   @Component({
     lifecycle: async function(app, metadata, method) {
       const methodResult = await method();
@@ -319,7 +406,7 @@ test('Core: CallResponser Hooks.', async t => {
   factory.notifier = new AppNotifier();
   await factory.setup();
   const streamer: CallStreamer = new CallStreamer(factory);
-  streamer.register(
+  await streamer.register(
     {
       uuid: Utils.uuid(),
       type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
@@ -333,7 +420,7 @@ test('Core: CallResponser Hooks.', async t => {
     },
     result => {
       if (result) {
-        t.is(result.text, 'Hello Streamer');
+        t.is(result.code, 401);
       }
     },
   );
@@ -355,7 +442,7 @@ test('Core: CallStreamer invalid call.', async t => {
   factory.notifier = new AppNotifier();
   await factory.setup();
   const streamer: CallStreamer = new CallStreamer(factory);
-  streamer.register(
+  await streamer.register(
     {
       uuid: Utils.uuid(),
       type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,

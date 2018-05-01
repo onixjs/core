@@ -44,6 +44,7 @@ export class CallResponser {
       }
       // Declare executable endpoint method and hooks references
       let scope,
+        systemcall: boolean = false,
         method: Function | null = null,
         mainHook: Function = () => null,
         slaveHook: Function | null = null,
@@ -54,6 +55,7 @@ export class CallResponser {
         scope = this.factory.app;
         method = this.factory.app[segments[1]];
         mainHook = this.lifecycle.onAppMethodCall;
+        systemcall = true;
       }
       // Module level call (System only, not exposed)
       if (segments.length > 2) {
@@ -90,7 +92,10 @@ export class CallResponser {
         return;
       }
       // Verify the call request matches the ACL Rules
-      if (GroupMatch.verify(method.name, operation, config)) {
+      if (
+        (await GroupMatch.verify(method.name, operation, config)) ||
+        systemcall
+      ) {
         // Execute main hook, might be app/system or module level.
         const result = await mainHook(
           (name: string) => this.factory.scopes[segments[1]].get(name),

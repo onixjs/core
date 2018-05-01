@@ -169,7 +169,7 @@ export class AppServer {
       case OperationType.ONIX_REMOTE_CALL_PROCEDURE:
         // Register Stream Request
         if (operation.message.request.metadata.stream) {
-          this.streamer.register(operation, chunk => {
+          await this.streamer.register(operation, chunk => {
             if (process.send)
               process.send({
                 uuid: operation.uuid,

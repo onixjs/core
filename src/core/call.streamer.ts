@@ -23,7 +23,7 @@ export class CallStreamer {
    * @description This method will register an incoming call in order
    * to send back an answer.
    */
-  register(operation: IAppOperation, handler) {
+  async register(operation: IAppOperation, handler) {
     // Get segments from rpc endpoint
     let scope,
       method: Function | null = null,
@@ -73,7 +73,7 @@ export class CallStreamer {
     }
 
     // Verify the call request matches the ACL Rules
-    if (GroupMatch.verify(method.name, operation, config)) {
+    if (await GroupMatch.verify(method.name, operation, config)) {
       // Default handler
       const def = data => data;
       // Execute main hook, might be app/system or module level.
