@@ -1,5 +1,5 @@
 import {AppFactory} from './app.factory';
-import {IAppOperation, IComponentConfig} from '../interfaces';
+import {IAppOperation, IComponentConfig, IModuleConfig} from '../interfaces';
 import {LifeCycle} from '.';
 import {ReflectionKeys} from '..';
 import {GroupMatch} from './acl.group.match';
@@ -24,12 +24,24 @@ export class CallStreamer {
    * to send back an answer.
    */
   async register(operation: IAppOperation, handler) {
-    // Get segments from rpc endpoint
-    let scope,
+    // Declare executable endpoint method and hooks references
+    let // Declare Operation Scope
+      scope,
+      // Declare Current Module Default Config
+      moduleConfig: IModuleConfig = {
+        components: [],
+        models: [],
+        services: [],
+        renderers: [],
+      },
+      // Define reference for the method to be executed
       method: Function | null = null,
+      // Define a main hook, it refers to a module level hook
       mainHook: Function = () => null,
+      // Define a slave hook, it refers to a component level hook
       slaveHook: Function | null = null,
-      config: IComponentConfig = {};
+      // Declare a reference for the executing component config
+      componentConfig: IComponentConfig = {};
 
     const segments: string[] = operation.message.rpc.split('.');
     // Component level method, RPC Exposed
@@ -44,10 +56,7 @@ export class CallStreamer {
     if (segments.length > 2) {
       scope = this.factory.app.modules[segments[1]];
       method = this.factory.app.modules[segments[1]][segments[2]];
-      const moduleConfig = Reflect.getMetadata(
-        ReflectionKeys.MODULE_CONFIG,
-        scope,
-      );
+      moduleConfig = Reflect.getMetadata(ReflectionKeys.MODULE_CONFIG, scope);
       mainHook = moduleConfig.lifecycle
         ? moduleConfig.lifecycle
         : this.lifecycle.onModuleMethodStream;
@@ -57,9 +66,12 @@ export class CallStreamer {
       scope = this.factory.app.modules[segments[1]][segments[2]];
       method = this.factory.app.modules[segments[1]][segments[2]][segments[3]];
       if (scope && method) {
-        config = Reflect.getMetadata(ReflectionKeys.COMPONENT_CONFIG, scope);
-        slaveHook = config.lifecycle
-          ? config.lifecycle
+        componentConfig = Reflect.getMetadata(
+          ReflectionKeys.COMPONENT_CONFIG,
+          scope,
+        );
+        slaveHook = componentConfig.lifecycle
+          ? componentConfig.lifecycle
           : this.lifecycle.onComponentMethodStream;
       }
     }
@@ -73,7 +85,15 @@ export class CallStreamer {
     }
 
     // Verify the call request matches the ACL Rules
-    if (await GroupMatch.verify(method.name, operation, config)) {
+    if (
+      await GroupMatch.verify(
+        method.name,
+        operation,
+        moduleConfig,
+        componentConfig,
+        this.factory.scopes[segments[1]],
+      )
+    ) {
       // Default handler
       const def = data => data;
       // Execute main hook, might be app/system or module level.

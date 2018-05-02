@@ -1388,7 +1388,18 @@ test('CORE: ACL Group Match', async t => {
     acl: [AllowEveryone],
   };
   // VERIFY ACCESS
-  const hasAccess: boolean = await GroupMatch.verify(name, operation, config);
+  const hasAccess: boolean = await GroupMatch.verify(
+    name,
+    operation,
+    {
+      components: [],
+      services: [],
+      models: [],
+      renderers: [],
+    },
+    config,
+    new Injector(),
+  );
   // TEST IF HAS ACCESS
   t.true(hasAccess);
 });

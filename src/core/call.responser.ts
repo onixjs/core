@@ -1,4 +1,9 @@
-import {ReflectionKeys, IAppOperation, IComponentConfig} from '../interfaces';
+import {
+  ReflectionKeys,
+  IAppOperation,
+  IComponentConfig,
+  IModuleConfig,
+} from '../interfaces';
 import {AppFactory, LifeCycle} from '../core';
 import {GroupMatch} from './acl.group.match';
 //import { RoleMatch } from './roles';
@@ -43,12 +48,25 @@ export class CallResponser {
         return;
       }
       // Declare executable endpoint method and hooks references
-      let scope,
+      let // Declare Operation Scope
+        scope,
+        // Declare Current Module Default Config
+        moduleConfig: IModuleConfig = {
+          components: [],
+          models: [],
+          services: [],
+          renderers: [],
+        },
+        // Define a flag for systemcalls, to override ACL access
         systemcall: boolean = false,
+        // Define reference for the method to be executed
         method: Function | null = null,
+        // Define a main hook, it refers to a module level hook
         mainHook: Function = () => null,
+        // Define a slave hook, it refers to a component level hook
         slaveHook: Function | null = null,
-        config: IComponentConfig = {};
+        // Declare a reference for the executing component config
+        componentConfig: IComponentConfig = {};
       // If segments are exactly 2, then it is an application level call
       // Only god can remotly execute this type of calls.
       if (segments.length === 2) {
@@ -61,10 +79,7 @@ export class CallResponser {
       if (segments.length > 2) {
         scope = this.factory.app.modules[segments[1]];
         method = this.factory.app.modules[segments[1]][segments[2]];
-        const moduleConfig = Reflect.getMetadata(
-          ReflectionKeys.MODULE_CONFIG,
-          scope,
-        );
+        moduleConfig = Reflect.getMetadata(ReflectionKeys.MODULE_CONFIG, scope);
         mainHook = moduleConfig.lifecycle
           ? moduleConfig.lifecycle
           : this.lifecycle.onModuleMethodCall;
@@ -76,9 +91,12 @@ export class CallResponser {
           segments[3]
         ];
         if (scope && method) {
-          config = Reflect.getMetadata(ReflectionKeys.COMPONENT_CONFIG, scope);
-          slaveHook = config.lifecycle
-            ? config.lifecycle
+          componentConfig = Reflect.getMetadata(
+            ReflectionKeys.COMPONENT_CONFIG,
+            scope,
+          );
+          slaveHook = componentConfig.lifecycle
+            ? componentConfig.lifecycle
             : this.lifecycle.onComponentMethodCall;
         }
       }
@@ -93,7 +111,13 @@ export class CallResponser {
       }
       // Verify the call request matches the ACL Rules
       if (
-        (await GroupMatch.verify(method.name, operation, config)) ||
+        (await GroupMatch.verify(
+          method.name,
+          operation,
+          moduleConfig,
+          componentConfig,
+          this.factory.scopes[segments[1]],
+        )) ||
         systemcall
       ) {
         // Execute main hook, might be app/system or module level.
