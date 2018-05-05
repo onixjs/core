@@ -2,8 +2,7 @@ import {Module} from '../../src/index';
 import {TodoComponent} from './todo.component';
 import {TodoModel} from './todo.model';
 import {TodoService} from './todo.service';
-import {TodoApp} from '../todo.app';
-import {OnixMessage} from '../../src/interfaces';
+import {OnixMessage, ModelProvider, OnixMethod} from '../../src/interfaces';
 /**
  * @class TodoModule
  * @author Jonathan Casarrubias
@@ -17,10 +16,10 @@ import {OnixMessage} from '../../src/interfaces';
   renderers: [],
   components: [TodoComponent],
   lifecycle: async (
-    app: TodoApp,
+    models: ModelProvider,
     message: OnixMessage,
-    method,
-  ): Promise<any> => {
+    method: OnixMethod,
+  ): Promise<TodoModel> => {
     // Add createdAt for any newly created todo
     if (message.rpc.match(/addTodo/)) {
       // Add Created At

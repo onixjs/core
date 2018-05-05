@@ -59,9 +59,9 @@ export interface IModuleConfig {
    * on any RPC call for any component living in this component.
    */
   lifecycle?: (
-    app: IApp,
-    metadata: IMetaData,
-    method: () => Promise<any>,
+    models: ModelProvider,
+    message: OnixMessage,
+    method: OnixMethod,
   ) => Promise<any>;
   /**
    * @property models
@@ -222,7 +222,7 @@ export interface Constructor {
 export interface IDataSource {
   connect();
   disconnect();
-  register(name: Constructor, model: any, schema: IModel);
+  register(Class: Constructor, model, schema);
 }
 /**
  * @interface IModelConfig
@@ -284,10 +284,18 @@ export interface IComponentConfig {
   after the module lifecycle, it won't override but
   it will execute after the module's one */
   lifecycle?: (
-    app: IApp,
-    metadata: IMetaData,
-    method: () => Promise<any>,
+    models: ModelProvider,
+    message: OnixMessage,
+    method: OnixMethod,
   ) => Promise<any>;
+}
+
+export interface OnixMethod {
+  (): Promise<any>;
+}
+
+export interface ModelProvider {
+  <T>(name: string): T;
 }
 
 export interface IMiddleware extends IViewConfig {
