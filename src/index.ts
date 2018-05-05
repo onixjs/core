@@ -40,7 +40,7 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.23';
+    return '1.0.0-alpha.24';
   }
   /**
    * @property router
