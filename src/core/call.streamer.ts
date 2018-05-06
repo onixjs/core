@@ -117,7 +117,7 @@ export class CallStreamer {
                   ? method.call(
                       scope,
                       data => handler(slaveSubHandler(masterSubHandler(data))),
-                      operation.message.request.payload,
+                      operation.message.request.metadata,
                     )
                   : null;
               },
@@ -128,7 +128,7 @@ export class CallStreamer {
               ? method.call(
                   scope,
                   data => handler(masterSubHandler(data)),
-                  operation.message.request.payload,
+                  operation.message.request.metadata,
                 )
               : null;
           }

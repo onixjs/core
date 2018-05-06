@@ -134,7 +134,7 @@ test('Onix rpc component stream', async t => {
   // Init SDK
   await client.init();
   // Create a TodoApp Reference
-  const TodoAppRef: AppReference | Error = client.AppReference('TodoApp');
+  const TodoAppRef: AppReference | Error = await client.AppReference('TodoApp');
   // Verify we actually got a Reference and not an Error
   if (TodoAppRef instanceof AppReference) {
     const componentRef: ComponentReference = TodoAppRef.Module(
