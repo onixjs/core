@@ -138,6 +138,7 @@ export class CallResponser {
                     ? await method.call(
                         scope,
                         operation.message.request.payload,
+                        operation.message.request.metadata,
                       )
                     : null;
                 },
@@ -145,7 +146,11 @@ export class CallResponser {
             } else {
               // Else just call the requested method now.
               return method
-                ? await method.call(scope, operation.message.request.payload)
+                ? await method.call(
+                    scope,
+                    operation.message.request.payload,
+                    operation.message.request.metadata,
+                  )
                 : null;
             }
           },

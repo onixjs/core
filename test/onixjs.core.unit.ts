@@ -37,7 +37,7 @@ import {CallResponser} from '../src/core/call.responser';
 import * as WebSocket from 'uws';
 import * as dot from 'dot';
 import {CallStreamer} from '../src/core/call.streamer';
-import {NodeJS} from '@onixjs/sdk/dist/core/node.adapters';
+import {NodeJS} from '@onixjs/sdk/dist/adapters/node.adapters';
 import {Utils} from '@onixjs/sdk/dist/utils';
 import {Mongoose, Schema} from 'mongoose';
 import {GroupMatch} from '../src/core/acl.group.match';
