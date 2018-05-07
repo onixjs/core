@@ -28,7 +28,13 @@ import {
   Constructor,
   Router,
   IComponentConfig,
+  IACLRule,
+  AccessType,
+  GroupList,
+  ModelProvider,
+  OnixMethod,
 } from '../src';
+import {Groups} from '../src/core/acl.groups';
 import {LifeCycle} from '../src/core/lifecycle';
 import {Injector} from '../src/core/injector';
 import {HostBoot} from '../src/core/host.boot';
@@ -43,6 +49,7 @@ import {Mongoose, Schema} from 'mongoose';
 import {GroupMatch} from '../src/core/acl.group.match';
 import {AllowEveryone} from '../src/core/acl.everyone';
 import {WSAdapter} from '../src/adapters/ws.adapter';
+import {OnixMessage} from '@onixjs/sdk';
 const cwd = path.join(process.cwd(), 'dist', 'test');
 // Test AppFactory
 
@@ -292,7 +299,11 @@ test('Core: CallResponser invalid call.', async t => {
 test('Core: CallResponser Hooks.', async t => {
   @Component({
     acl: [AllowEveryone],
-    lifecycle: async function(app, metadata, method) {
+    lifecycle: async function(
+      models: ModelProvider,
+      message: OnixMessage,
+      method: OnixMethod,
+    ) {
       const methodResult = await method();
       return methodResult;
     },
@@ -336,10 +347,76 @@ test('Core: CallResponser Hooks.', async t => {
 test('Core: CallStreamer Valid.', async t => {
   @Component({
     acl: [AllowEveryone],
-    lifecycle: async function(app, metadata, method) {
-      const methodResult = await method();
+    lifecycle: async function(
+      models: ModelProvider,
+      message: OnixMessage,
+      method: OnixMethod,
+    ) {
+      const noRealModel = models('NotReal');
+      let methodResult;
+      if (!noRealModel) {
+        methodResult = await method();
+      }
       return methodResult;
     },
+  })
+  class MyComponent {
+    @Stream()
+    test(stream) {
+      return stream({
+        text: 'Hello Streamer',
+      });
+    }
+  }
+  @Module({
+    models: [],
+    renderers: [],
+    services: [],
+    components: [MyComponent],
+    lifecycle: async function(
+      models: ModelProvider,
+      message: OnixMessage,
+      method: OnixMethod,
+    ) {
+      const noRealModel = models('NotReal');
+      let methodResult;
+      if (!noRealModel) {
+        methodResult = await method();
+      }
+      return methodResult;
+    },
+  })
+  class MyModule {}
+  class MyApp extends Application {}
+  const factory: AppFactory = new AppFactory(MyApp);
+  factory.config = {network: {disabled: true}, modules: [MyModule]};
+  factory.notifier = new AppNotifier();
+  await factory.setup();
+  const streamer: CallStreamer = new CallStreamer(factory);
+  await streamer.register(
+    {
+      uuid: Utils.uuid(),
+      type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
+      message: {
+        rpc: 'MyApp.MyModule.MyComponent.test',
+        request: <IRequest>{
+          metadata: {stream: true},
+          payload: {},
+        },
+      },
+    },
+    result => {
+      if (result) {
+        t.is(result.text, 'Hello Streamer');
+      }
+    },
+  );
+});
+
+// Test CallStreamer Valid No Hooks
+test('Core: CallStreamer Valid No Hooks.', async t => {
+  @Component({
+    acl: [AllowEveryone],
   })
   class MyComponent {
     @Stream()
@@ -385,10 +462,77 @@ test('Core: CallStreamer Valid.', async t => {
 // Test CallStreamer Not Authorized
 test('Core: CallStreamer Not Authorized.', async t => {
   @Component({
-    lifecycle: async function(app, metadata, method) {
+    lifecycle: async function(
+      models: ModelProvider,
+      message: OnixMessage,
+      method: OnixMethod,
+    ) {
       const methodResult = await method();
       return methodResult;
     },
+  })
+  class MyComponent {
+    @Stream()
+    test(stream) {
+      return stream({
+        text: 'Hello Streamer',
+      });
+    }
+  }
+  @Module({
+    models: [],
+    renderers: [],
+    services: [],
+    components: [MyComponent],
+    lifecycle: async function(
+      models: ModelProvider,
+      message: OnixMessage,
+      method: OnixMethod,
+    ) {
+      const methodResult = await method();
+      return methodResult;
+    },
+  })
+  class MyModule {}
+  class MyApp extends Application {}
+  const factory: AppFactory = new AppFactory(MyApp);
+  factory.config = {network: {disabled: true}, modules: [MyModule]};
+  factory.notifier = new AppNotifier();
+  await factory.setup();
+  const streamer: CallStreamer = new CallStreamer(factory);
+  await streamer.register(
+    {
+      uuid: Utils.uuid(),
+      type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
+      message: {
+        rpc: 'MyApp.MyModule.MyComponent.test',
+        request: <IRequest>{
+          metadata: {stream: true},
+          payload: {},
+        },
+      },
+    },
+    result => {
+      if (result) {
+        t.is(result.code, 401);
+      }
+    },
+  );
+});
+
+// Test CallStreamer Not Method Authorized
+test('Core: CallStreamer Not Method Authorized.', async t => {
+  @Component({
+    acl: [
+      class AllowSome implements IACLRule {
+        // Define methods to be granted
+        methods: string[] = ['nomethod'];
+        // Define Access Grant
+        access: AccessType = AccessType.ALLOW;
+        // Define groups with the defined grant
+        groups: GroupList = [Groups.Everyone];
+      },
+    ],
   })
   class MyComponent {
     @Stream()
@@ -581,6 +725,38 @@ test('Core: host boot ssl activation file.', async t => {
   );
   // Test Service
   t.is(result, 'activation-hello-world');
+  await instance.host.stop();
+});
+// Test host boot ssl activation file missing directory
+test('Core: host boot ssl activation file missing directory.', async t => {
+  const instance: HostBoot = new HostBoot(
+    {
+      apps: ['TodoApp@todo.app:8079'],
+    },
+    {
+      cwd,
+      port: 5001,
+      adapters: {websocket: WSAdapter},
+      network: {
+        ssl: {
+          activation: {
+            endpoint: '/.well-known/activation.txt',
+            path: '../../test/activation.notexistent.txt',
+          },
+        },
+      },
+    },
+  );
+  await instance.run();
+  // Create HTTP Client
+  const client: NodeJS.HTTP = new NodeJS.HTTP();
+  // Call the decorated JSON
+  const result: any = <any>await client.get(
+    'http://127.0.0.1:5001/.well-known/activation.txt',
+  );
+  // Test Service
+  t.is(result.code, 404);
+  t.is(result.message, 'Activation file not found.');
   await instance.host.stop();
 });
 // Test host boot throws
