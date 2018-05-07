@@ -1,7 +1,6 @@
 import * as http from 'http';
 import * as https from 'https';
-import * as WebSocket from 'uws';
-import {IAppOperation, IAppDirectory} from '../interfaces';
+import {IAppOperation, IAppDirectory, WebSocketAdapter} from '../interfaces';
 /**
  * @class HostBroker
  * @author Jonathan Casarrubias
@@ -20,8 +19,12 @@ export class HostBroker {
    * @description The constructor will create a new websocket server from the
    * incoming http server created within the OnixJS Host.
    */
-  constructor(server: http.Server | https.Server, private apps: IAppDirectory) {
-    new WebSocket.Server({server}).on('connection', (ws: WebSocket) => {
+  constructor(
+    private server: http.Server | https.Server,
+    private websocket: WebSocketAdapter,
+    private apps: IAppDirectory,
+  ) {
+    this.websocket.WebSocket(this.server).on('connection', ws => {
       ws.on('message', (data: string) => this.handle(ws, JSON.parse(data)));
     });
   }

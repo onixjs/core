@@ -1,6 +1,7 @@
 import {OnixJS, promiseSeries} from '../index';
 import * as path from 'path';
 import {OnixConfig, BootConfig} from '../interfaces';
+import {WSAdapter} from '../adapters/ws.adapter';
 /**
  * @class HostBoot
  * @author Jonathan Casarrubias
@@ -40,6 +41,7 @@ export class HostBoot {
     private hc: OnixConfig = {
       // Default working directory points to ./dist
       cwd: path.join(process.cwd(), 'dist'),
+      adapters: {websocket: WSAdapter},
     },
   ) {
     // Make sure we got the right configuration before
