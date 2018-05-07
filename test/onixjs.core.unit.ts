@@ -42,6 +42,7 @@ import {Utils} from '@onixjs/sdk/dist/utils';
 import {Mongoose, Schema} from 'mongoose';
 import {GroupMatch} from '../src/core/acl.group.match';
 import {AllowEveryone} from '../src/core/acl.everyone';
+import {WSAdapter} from '../src/adapters/ws.adapter';
 const cwd = path.join(process.cwd(), 'dist', 'test');
 // Test AppFactory
 
@@ -76,6 +77,7 @@ test('Core: OnixJS loads creates duplicated Application.', async t => {
   const onix: OnixJS = new OnixJS({
     cwd: path.join(process.cwd(), 'dist', 'test'),
     port: 8086,
+    adapters: {websocket: WSAdapter},
   });
   await onix.load('TodoApp@todo.app:disabled');
   const error = await t.throws(onix.load('TodoApp@todo.app:disabled'));
@@ -87,6 +89,7 @@ test('Core: OnixJS pings missing Application.', async t => {
   const onix: OnixJS = new OnixJS({
     cwd: path.join(process.cwd(), 'dist', 'test'),
     port: 9091,
+    adapters: {websocket: WSAdapter},
   });
   const error = await t.throws(onix.ping('MissingApp'));
   t.is(
@@ -100,6 +103,7 @@ test('Core: OnixJS fails on coordinating invalid callee.', async t => {
   const onix: OnixJS = new OnixJS({
     cwd: path.join(process.cwd(), 'dist', 'test'),
     port: 8088,
+    adapters: {websocket: WSAdapter},
   });
   const error = await t.throws(
     onix.coordinate('Dummy.call', <IRequest>{metadata: {}, payload: {}}),
@@ -112,6 +116,7 @@ test('Core: OnixJS gets list of apps.', async t => {
   const onix: OnixJS = new OnixJS({
     cwd: path.join(process.cwd(), 'dist', 'test'),
     port: 8089,
+    adapters: {websocket: WSAdapter},
   });
   await onix.load('TodoApp@todo.app:disabled');
   const apps = onix.apps();
@@ -539,7 +544,10 @@ test('Core: host boot.', async t => {
     {
       apps: ['TodoApp@todo.app:8076'],
     },
-    {cwd},
+    {
+      cwd,
+      adapters: {websocket: WSAdapter},
+    },
   );
   await t.notThrows(instance.run());
   await instance.host.stop();
@@ -553,8 +561,8 @@ test('Core: host boot ssl activation file.', async t => {
     {
       cwd,
       port: 5000,
+      adapters: {websocket: WSAdapter},
       network: {
-        disabled: false,
         ssl: {
           activation: {
             endpoint: '/.well-known/activation.txt',
@@ -583,7 +591,10 @@ test('Core: host boot throws.', async t => {
         {
           apps: [],
         },
-        {cwd},
+        {
+          cwd,
+          adapters: {websocket: WSAdapter},
+        },
       );
     }),
   );

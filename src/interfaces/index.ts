@@ -1,5 +1,6 @@
 import {ChildProcess} from 'child_process';
 import * as http from 'http';
+import * as https from 'https';
 import {AppNotifier} from '..';
 /**
  * @interface IAppConfig
@@ -7,7 +8,15 @@ import {AppNotifier} from '..';
  * @description This interface will provida configuration for
  * a given application.
  */
-export interface IAppConfig extends OnixConfig {
+export interface IAppConfig {
+  cwd?: string;
+  // Port if network enabled
+  port?: number;
+  // If network enabled, a HTTP server will be created
+  network?: {
+    disabled: boolean;
+    ssl?: ISSlConfig;
+  };
   // Modules to be loaded for this application
   modules: Constructor[];
 }
@@ -330,9 +339,16 @@ export interface OnixConfig extends DomainConfig {
   cwd?: string;
   // If network enabled, a HTTP server will be created
   network?: {
-    disabled: boolean;
     ssl?: ISSlConfig;
   };
+  // WebSocket Adapter
+  adapters: {
+    websocket: new () => WebSocketAdapter;
+  };
+}
+
+export interface WebSocketAdapter {
+  WebSocket(server: http.Server | https.Server);
 }
 
 export interface BootConfig {

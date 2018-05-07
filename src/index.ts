@@ -22,6 +22,7 @@ import * as finalhandler from 'finalhandler';
 import {Utils} from '@onixjs/sdk/dist/utils';
 import {HostBroker} from './core/host.broker';
 import {promisify} from 'util';
+import {WSAdapter} from './adapters/ws.adapter';
 /**
  * @class OnixJS
  * @author Jonathan Casarrubias <gh: mean-expert-official>
@@ -40,7 +41,7 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.25';
+    return '1.0.0-alpha.27';
   }
   /**
    * @property router
@@ -65,7 +66,13 @@ export class OnixJS {
    * @description Internally exposes a given configuration.
    * It logs to the terminal the current Onix version.
    */
-  constructor(public config: OnixConfig = {cwd: process.cwd(), port: 3000}) {
+  constructor(
+    public config: OnixConfig = {
+      cwd: process.cwd(),
+      port: 3000,
+      adapters: {websocket: WSAdapter},
+    },
+  ) {
     this.config = Object.assign({cwd: process.cwd(), port: 3000}, config);
     // Listener for closing process
     process.on('exit', async () => {
@@ -351,7 +358,7 @@ export class OnixJS {
    * @description This method will start the systemm level server.
    */
   private async startSystemServer() {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       // Setup server
       this.server = this.createServer();
       // Verify if there is an SSL Activation File
@@ -371,8 +378,10 @@ export class OnixJS {
       new SchemaProvider(this.router, this._apps);
       // Listen Server Port
       this.server.listen(this.config.port);
-      // Create schema provider route
-      new HostBroker(this.server, this._apps);
+      // Create WebSocket Adapter Instance
+      const adapter = new this.config.adapters.websocket();
+      // Create Onix Host Instance
+      new HostBroker(this.server, adapter, this._apps);
       // Indicate the ONIX SERVER is now listening on the given port
       console.log(`ONIXJS HOST LOADED: Listening on port ${this.config.port}`);
       // Resolve Server
