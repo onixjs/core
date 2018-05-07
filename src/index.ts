@@ -41,7 +41,7 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.27';
+    return '1.0.0-alpha.28';
   }
   /**
    * @property router
@@ -78,10 +78,6 @@ export class OnixJS {
     process.on('exit', async () => {
       // Signal child processes to stop their internal processes
       await this.stop();
-      // Kill'em all right now.
-      Object.keys(this._apps).forEach(reference =>
-        this._apps[reference].process.kill('SIGHUP'),
-      );
     });
     // Log Onix Version
     console.info('Loading Onix Server Version: ', this.version);
@@ -347,7 +343,13 @@ export class OnixJS {
     ).then(
       (res: OperationType.APP_STOP_RESPONSE[]) =>
         new Promise<OperationType.APP_STOP_RESPONSE[]>((resolve, reject) => {
-          this.server.close(() => resolve(res));
+          this.server.close(() => {
+            // Kill'em all right now.
+            Object.keys(this._apps).forEach(reference =>
+              this._apps[reference].process.kill('SIGHUP'),
+            );
+            resolve(res);
+          });
         }),
     );
   }
@@ -410,44 +412,24 @@ export class OnixJS {
         // Promisify exists and readfile
         const AsyncExists = promisify(fs.exists);
         const AsyncReadFile = promisify(fs.readFile);
-        try {
-          // Verify the pathname exists
-          const exist: boolean = await AsyncExists(pathname);
-          // If not, return 404 code
-          if (!exist) {
-            // if the file is not found, return 404
-            res.statusCode = 404;
-            return res.end(
-              JSON.stringify({
-                code: res.statusCode,
-                message: `Activation file not found.`,
-              }),
-            );
-          }
-          try {
-            // read file from file system
-            const data = await AsyncReadFile(pathname);
-            // Set response headers
-            res.setHeader('Content-type', 'text/plain');
-            res.end(data.toString());
-          } catch (e) {
-            res.setHeader('Content-type', 'application/json');
-            res.end(
-              JSON.stringify({
-                error: 404,
-                message: 'Oops!!! something went wrong',
-              }),
-            );
-          }
-        } catch (e) {
-          res.setHeader('Content-type', 'application/json');
-          res.end(
+        // Verify the pathname exists
+        const exist: boolean = await AsyncExists(pathname);
+        // If not, return 404 code
+        if (!exist) {
+          // if the file is not found, return 404
+          res.statusCode = 404;
+          return res.end(
             JSON.stringify({
-              error: 404,
-              message: 'Oops!!! something went wrong',
+              code: res.statusCode,
+              message: `Activation file not found.`,
             }),
           );
         }
+        // read file from file system
+        const data = await AsyncReadFile(pathname);
+        // Set response headers
+        res.setHeader('Content-type', 'text/plain');
+        res.end(data.toString());
       },
     );
   }
