@@ -1,16 +1,10 @@
 import {test} from 'ava';
 import * as path from 'path';
-import {
-  OnixJS,
-  OperationType,
-  IAppOperation,
-  IRequest,
-  OnixMessage,
-} from '../src/index';
+import {OnixJS, OperationType, IAppOperation, IRequest} from '../src/index';
 import {TodoModel} from './todo.shared/todo.model';
 const pkg = require('../../package.json');
 const cwd = path.join(process.cwd(), 'dist', 'test');
-import * as WebSocket from 'uws';
+import * as WebSocket from 'ws';
 import {IAppConfig} from '../src/interfaces';
 import {Utils} from '@onixjs/sdk/dist/utils';
 import {OnixClient, AppReference, ComponentReference} from '@onixjs/sdk';
@@ -103,7 +97,7 @@ test('Onix rpc component methods from client', async t => {
   await onix.load('TodoApp@todo.app');
   await onix.start();
   // Websocket should be available now
-  const client: WebSocket = new WebSocket('ws://127.0.0.1:8079');
+  const client: WebSocket = new WebSocket('ws://127.0.0.1:8086');
   const todo: TodoModel = new TodoModel();
   todo.text = 'Onix rpc component methods from client';
   // Send remote call through websockets
@@ -123,11 +117,14 @@ test('Onix rpc component methods from client', async t => {
   client.on('open', () => {
     // Send Todo
     client.send(
-      JSON.stringify(<OnixMessage>{
-        rpc: 'TodoApp.TodoModule.TodoComponent.addTodo',
-        request: <IRequest>{
-          metadata: {stream: false, caller: 'tester', token: 'dummytoken'},
-          payload: todo,
+      JSON.stringify(<IAppOperation>{
+        uuid: Utils.uuid(),
+        message: {
+          rpc: 'TodoApp.TodoModule.TodoComponent.addTodo',
+          request: <IRequest>{
+            metadata: {stream: false, caller: 'tester', token: 'dummytoken'},
+            payload: todo,
+          },
         },
       }),
     );
@@ -171,6 +168,74 @@ test('Onix rpc component stream', async t => {
     });
     // Send new todo
     const result = await componentRef.Method('addTodo').call({text});
+    t.is(result.text, text);
+  }
+  onix
+    .stop()
+    .then(() => console.log('STOPPED'), e => console.log('SOME ERROR', e));
+});
+
+//Test Onix Call Connect RPC*
+test('Onix Call Connect RPC', async t => {
+  const text: string = 'Hello Connected World';
+  // Host Port 2999
+  const onix: OnixJS = new OnixJS({
+    cwd,
+    port: 2999,
+    adapters: {websocket: WSAdapter},
+  });
+  // SOA Service Port 8078
+  await onix.load('AliceApp@alice.app:disabled');
+  await onix.load('BobApp@bob.app:disabled');
+  await onix.start();
+  // Websocket should be available now
+  const client: OnixClient = new OnixClient({
+    host: 'http://127.0.0.1',
+    port: 2999,
+    adapters: {
+      http: NodeJS.HTTP,
+      websocket: NodeJS.WebSocket,
+      storage: NodeJS.LocalStorage,
+    },
+  });
+  // Init SDK
+  await client.init();
+  // Create a BobApp Reference
+  const BobAppRef: AppReference | Error = await client.AppReference('BobApp');
+  // Verify we actually got a Reference and not an Error
+  if (BobAppRef instanceof AppReference) {
+    const componentRef: ComponentReference = BobAppRef.Module(
+      'BobModule',
+    ).Component('BobComponent');
+    // Set on create listener
+    componentRef.Method('exposedStream').stream(data => t.is(data.text, text));
+    // Test wrong app through exposed proxy
+    const e1 = await componentRef.Method('exposedFakeAppCall').call({});
+    console.log('E1: ', e1);
+    t.is(e1, 'ONIXJS: The app "fakeApp" is not hosted by the provided broker.');
+    // Test wrong module through exposed proxy
+    const e2 = await componentRef.Method('exposedFakeModuleCall').call({});
+    console.log('E2: ', e2);
+    t.is(
+      e2,
+      'ONIXJS: The module "fakeModule" doesn\'t belongs to app "AliceApp".',
+    );
+    // Test wrong component through exposed proxy
+    const e3 = await componentRef.Method('exposedFakeComponentCall').call({});
+    //console.log('E3: ', e3);
+    t.is(
+      e3,
+      'ONIXJS: The component "fakeComponent" doesn\'t belongs to module "AliceModule".',
+    );
+    // Test wrong method through exposed proxy
+    const e4 = await componentRef.Method('exposedFakeMethodCall').call({});
+    console.log('E4: ', e4);
+    t.is(
+      e4,
+      'ONIXJS: The method "fakeCallMe" doesn\'t belongs to component "AliceComponent".',
+    );
+    // Send new todo
+    const result = await componentRef.Method('exposedCall').call({text});
     t.is(result.text, text);
   }
   onix

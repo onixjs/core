@@ -40,7 +40,7 @@ import {Injector} from '../src/core/injector';
 import {HostBoot} from '../src/core/host.boot';
 import * as path from 'path';
 import {CallResponser} from '../src/core/call.responser';
-import * as WebSocket from 'uws';
+//import * as WebSocket from 'ws';
 import * as dot from 'dot';
 import {CallStreamer} from '../src/core/call.streamer';
 import {NodeJS} from '@onixjs/sdk/dist/adapters/node.adapters';
@@ -51,7 +51,6 @@ import {AllowEveryone} from '../src/core/acl.everyone';
 import {WSAdapter} from '../src/adapters/ws.adapter';
 import {OnixMessage} from '@onixjs/sdk';
 const cwd = path.join(process.cwd(), 'dist', 'test');
-// Test AppFactory
 
 test('Core: AppFactory creates an Application.', async t => {
   class MyApp extends Application {}
@@ -342,7 +341,6 @@ test('Core: CallResponser Hooks.', async t => {
   });
   t.is(result.text, 'Hello Responser');
 });
-
 // Test CallStreamer Valid
 test('Core: CallStreamer Valid.', async t => {
   @Component({
@@ -574,7 +572,6 @@ test('Core: CallStreamer Not Method Authorized.', async t => {
     },
   );
 });
-
 // Test CallStreamer invalid call
 test('Core: CallStreamer invalid call.', async t => {
   class MyComponent {}
@@ -607,58 +604,6 @@ test('Core: CallStreamer invalid call.', async t => {
       );
     },
   );
-});
-//Test AppServer invalid operation
-test('Core: AppServer invalid operation.', async t => {
-  class MyApp extends Application {}
-  const appServer: AppServer = new AppServer(MyApp, {
-    port: 8090,
-    modules: [],
-  });
-  // Start App
-  await appServer.operation({
-    uuid: Utils.uuid(),
-    type: OperationType.APP_CREATE,
-    message: {
-      rpc: '',
-      request: {
-        metadata: {stream: false},
-        payload: '',
-      },
-    },
-  });
-  // Start websocket server
-  await appServer.operation({
-    uuid: Utils.uuid(),
-    type: OperationType.APP_START,
-    message: {
-      rpc: '',
-      request: {
-        metadata: {stream: false},
-        payload: '',
-      },
-    },
-  });
-  // Connect to the application websocket server
-  const client: WebSocket = new WebSocket('ws://127.0.0.1:8090');
-  // Send remote call through websockets
-  client.on('message', async data => {
-    if (Utils.IsJsonString(data)) {
-      const operation: IAppOperation = JSON.parse(data);
-      t.is(operation.message.request.payload, 'welcome');
-      await appServer.operation({
-        uuid: Utils.uuid(),
-        type: OperationType.APP_STOP,
-        message: {
-          rpc: '',
-          request: {
-            metadata: {stream: false},
-            payload: '',
-          },
-        },
-      });
-    }
-  });
 });
 // Test Application start and stop
 test('Core: Application start and stop.', async t => {
@@ -1565,7 +1510,9 @@ test('CORE: ACL Group Match', async t => {
     message: {
       rpc: name,
       request: {
-        metadata: {},
+        metadata: {
+          stream: false,
+        },
         payload: {},
       },
     },

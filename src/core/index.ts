@@ -5,5 +5,6 @@ export * from './host.boot';
 export * from './app.server';
 export * from './app.factory';
 export * from './app.notifier';
+export * from './call.connect';
 export * from './acl.groups';
 export * from './acl.everyone';

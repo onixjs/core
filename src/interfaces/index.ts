@@ -159,8 +159,42 @@ export interface OnixMessage {
  * @description IRequest inteface
  */
 export interface IRequest {
-  metadata: {[key: string]: any; stream?: boolean};
+  metadata: IMetaData;
   payload: any;
+}
+/**
+ * @interface ICallConfig
+ * @author Jonathan Casarrubias
+ * @description ICallConfig inteface will
+ * be used to establish connection between
+ * services within the same broker
+ */
+export interface ICallConfig {
+  app: string;
+  module: string;
+  component: string;
+  method: string;
+  broker: {
+    host?: string;
+    port: number;
+  };
+}
+/**
+ * @interface ICallConfig
+ * @author Jonathan Casarrubias
+ * @description IOnixSchema provides an
+ * interface for a schema published by an OnixBroker.
+ */
+export interface IOnixSchema {
+  [key: string]: {
+    modules: {
+      [key: string]: {
+        [key: string]: {
+          [key: string]: string;
+        };
+      };
+    };
+  };
 }
 /**
  * @author Jonathan Casarrubias
@@ -212,7 +246,9 @@ export interface IComponentDirectory {
  */
 export interface IMetaData {
   [key: string]: any;
+  sub?: string;
   token?: string;
+  stream: boolean;
 }
 /**
  * @interface Constructor
