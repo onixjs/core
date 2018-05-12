@@ -1,4 +1,10 @@
-import {IComponent} from '../../../src/index';
+import {
+  IComponent,
+  RPC,
+  Stream,
+  Component,
+  AllowEveryone,
+} from '../../../src/index';
 /**
  * @class AliceComponent
  * @author Jonathan Casarrubias
@@ -6,7 +12,20 @@ import {IComponent} from '../../../src/index';
  * @description This class provides with functionality
  * for testing purposes, storing Alice objects in memory.
  */
+@Component({
+  acl: [AllowEveryone],
+})
 export class AliceComponent implements IComponent {
   init() {}
   destroy() {}
+
+  @RPC()
+  callMe(payload) {
+    return payload;
+  }
+
+  @Stream()
+  streamMe(stream) {
+    stream('Hello Connected World');
+  }
 }

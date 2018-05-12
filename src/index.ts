@@ -41,7 +41,7 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-alpha.28';
+    return '1.0.0-alpha.29';
   }
   /**
    * @property router
@@ -103,7 +103,9 @@ export class OnixJS {
         message: {
           rpc: 'ping',
           request: {
-            metadata: {},
+            metadata: {
+              stream: false,
+            },
             payload: {},
           },
         },
@@ -140,7 +142,9 @@ export class OnixJS {
               message: {
                 rpc: '[apps].isAlive', // [apps] will be overriden inside each app
                 request: {
-                  metadata: {},
+                  metadata: {
+                    stream: false,
+                  },
                   payload: apps,
                 },
               },
