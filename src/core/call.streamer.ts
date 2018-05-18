@@ -1,8 +1,9 @@
 import {AppFactory} from './app.factory';
-import {IAppOperation, IComponentConfig, IModuleConfig} from '../interfaces';
+import {IComponentConfig, IModuleConfig} from '../interfaces';
 import {LifeCycle} from '.';
 import {ReflectionKeys} from '..';
 import {GroupMatch} from './acl.group.match';
+import {IAppOperation} from '@onixjs/sdk';
 
 export class CallStreamer {
   /**
@@ -118,6 +119,7 @@ export class CallStreamer {
                       scope,
                       data => handler(slaveSubHandler(masterSubHandler(data))),
                       operation.message.request.metadata,
+                      operation.uuid,
                     )
                   : null;
               },
@@ -129,6 +131,7 @@ export class CallStreamer {
                   scope,
                   data => handler(masterSubHandler(data)),
                   operation.message.request.metadata,
+                  operation.uuid,
                 )
               : null;
           }

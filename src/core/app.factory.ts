@@ -10,13 +10,11 @@ import {
   RouterTypes,
 } from '../interfaces';
 import {Injector} from '../core';
-import {getObjectMethods, promiseSeries, AsyncWalk} from '../utils';
-import {AppNotifier, IMiddleware} from '..';
+import {getObjectMethods, promiseSeries} from '../utils';
+import {AppNotifier} from '..';
 import * as Router from 'router';
-import * as fs from 'fs';
 import * as path from 'path';
-import {Utils} from '@onixjs/sdk/dist/utils';
-import {promisify} from 'util';
+import {AppRoute} from './app.route';
 /**
  * @class AppFactory
  * @author Jonathan Casarrubias
@@ -184,25 +182,18 @@ export class AppFactory {
   /**
    * @method routing
    * @param instance
-   * @description
-   *   Keep routin' routin' routin' routin' (what?)
-   *   Keep routin' routin' routin' routin' (come on)
-   *   Keep routin' routin' routin' routin' (yeah)
-   *   Keep routin' routin' routin' routin'
-   *   Now I know why'all be lovin' this shit right here
-   *   O.N.I.X Onix is right here
-   *   People in the house put them hands in the air
-   *   'Cause if you don't care, then we don't care
-   *   --------------------------------------------------
-   *   /W Love: Jon
+   * @description This method will configure every decorated
+   * method using any of the provided @Router decorators.
+   * Those having decorated configs, will load the associated
+   * class Route class.
    */
-  routing(instance, router: Router): void {
+  routing(component, router: Router): void {
     // Iterate over component methods
-    getObjectMethods(instance).forEach((method: string) => {
+    getObjectMethods(component).forEach((method: string) => {
       // Try to get middleware config now
-      const config: IMiddleware = Reflect.getMetadata(
+      const config = Reflect.getMetadata(
         ReflectionKeys.MIDDLEWARE,
-        instance,
+        component,
         method,
       );
       // Verify we actually got a middleware config
@@ -211,164 +202,41 @@ export class AppFactory {
           case RouterTypes.HTTP:
           case RouterTypes.USE:
           case RouterTypes.ALL:
-            if (config.endpoint) {
-              this.router[config.method.toLowerCase()](
-                config.endpoint,
-                async (req, res, next) =>
-                  await this.routeWrapper(instance, method, req, res, next),
-              );
-            } else {
-              this.router[config.method.toLowerCase()](
-                async (req, res, next) =>
-                  await this.routeWrapper(instance, method, req, res, next),
-              );
-            }
+            new AppRoute.Default(component, method, this.router, config);
             break;
           case RouterTypes.PARAM:
             this.router.param(
               config.param!.name,
               async (req, res, next, param) => {
-                req[config.param!.as] = await instance[method](req, param);
+                req[config.param!.as] = await component[method](req, param);
                 next();
               },
             );
             break;
           case RouterTypes.STATIC:
-            this.router.use(async (req, res, next) => {
-              const pathname: string = path.join(
+            new AppRoute.Static(
+              component,
+              method,
+              path.join(
                 this.config.cwd || process.cwd(),
                 config.endpoint || '/',
-              );
-              try {
-                const AsyncLStat = promisify(fs.lstat);
-                const stats: fs.Stats = await AsyncLStat(pathname);
-                let match: string | undefined;
-                if (stats.isDirectory()) {
-                  const files: string[] = <string[]>await AsyncWalk(pathname);
-                  match = files
-                    .filter((file: string) =>
-                      file.match(new RegExp('\\b' + req.url + '\\b', 'g')),
-                    )
-                    .pop();
-                }
-                await this.view(
-                  instance,
-                  method,
-                  config,
-                  match || pathname,
-                  req,
-                  res,
-                  next,
-                );
-              } catch (e) {
-                next();
-              }
-            });
+              ),
+              this.router,
+              config,
+            );
             break;
           case RouterTypes.VIEW:
-            this.router[config.method.toLowerCase()](
-              config.endpoint || config.file,
-              async (req, res, next) =>
-                await this.view(
-                  instance,
-                  method,
-                  config,
-                  path.join(
-                    this.config.cwd || process.cwd(),
-                    config.file || '',
-                  ),
-                  req,
-                  res,
-                  next,
-                ),
+            new AppRoute.View(
+              component,
+              method,
+              path.join(this.config.cwd || process.cwd(), config.file || ''),
+              this.router,
+              config,
             );
             break;
         }
       }
     });
-  }
-  /**
-   * @method routeWrapper
-   * @param instance
-   * @param method
-   * @param err
-   * @param req
-   * @param res
-   * @param next
-   * @description This handler will provide shared functionality
-   * when registering different type of route features.
-   */
-  async routeWrapper(instance, method, req, res, next) {
-    // Potentially register LifeCycles in here.
-    const result = await instance[method](req, res, next);
-    // If the method returned a value, otherwise they might response their selves
-    if (result) {
-      // Send result to the requester
-      res.end(Utils.IsJsonString(result) ? JSON.stringify(result) : result);
-    }
-  }
-  /**
-   * @method view
-   * @param ctx
-   * @param req
-   * @param res
-   * Will server view files
-   */
-  private async view(instance, method, config, pathname, req, res, next) {
-    if (req.url && req.method) {
-      // Try to get a file extension
-      const ext = path.parse(pathname).ext;
-      // maps file extention to MIME typere
-      const map = {
-        '.ico': 'image/x-icon',
-        '.html': 'text/html',
-        '.js': 'text/javascript',
-        '.json': 'application/json',
-        '.css': 'text/css',
-        '.png': 'image/png',
-        '.jpg': 'image/jpeg',
-        '.wav': 'audio/wav',
-        '.mp3': 'audio/mpeg',
-        '.svg': 'image/svg+xml',
-        '.pdf': 'application/pdf',
-        '.doc': 'application/msword',
-        '.woff': 'application/font-woff',
-        '.ttf': 'application/font-ttf',
-        '.eot': 'application/vnd.ms-fontobject',
-        '.otf': 'application/font-otf',
-      };
-      // Promisify exists and readfile
-      const AsyncExists = promisify(fs.exists);
-      const AsyncReadFile = promisify(fs.readFile);
-      try {
-        // Verify the pathname exists
-        const exist: boolean = await AsyncExists(pathname);
-        // If not, return 404 code
-        if (!exist) {
-          // if the file is not found, return 404
-          res.statusCode = 404;
-          return res.end(
-            JSON.stringify({
-              code: res.statusCode,
-              message: `Oops!!! something went wrong.`,
-            }),
-          );
-        }
-        try {
-          // read file from file system
-          const data = await AsyncReadFile(pathname);
-          // Potentially get cookies and headers
-          const result = await instance[method](req, data);
-          // Set response headers
-          res.setHeader('Content-type', map[ext] || 'text/plain');
-          res.end(Utils.IsJsonString(result) ? JSON.stringify(result) : result);
-        } catch (e) {
-          next();
-        }
-      } catch (e) {
-        next();
-      }
-    }
   }
   /**
    * @method schema

@@ -1,18 +1,25 @@
 import {test} from 'ava';
 import * as path from 'path';
-import {OnixJS, OperationType, IAppOperation, IRequest} from '../src/index';
+import {OnixJS} from '../src/index';
 import {TodoModel} from './todo.shared/todo.model';
 const pkg = require('../../package.json');
 const cwd = path.join(process.cwd(), 'dist', 'test');
-import * as WebSocket from 'ws';
+//import * as WebSocket from 'ws';
 import {IAppConfig} from '../src/interfaces';
 import {Utils} from '@onixjs/sdk/dist/utils';
-import {OnixClient, AppReference, ComponentReference} from '@onixjs/sdk';
+import {
+  OnixClient,
+  AppReference,
+  ComponentReference,
+  OperationType,
+  IAppOperation,
+  IRequest,
+} from '@onixjs/sdk';
 import {NodeJS} from '@onixjs/sdk/dist/adapters/node.adapters';
 import {WSAdapter} from '../src/adapters/ws.adapter';
 // Test Onix Version
 
-test('Onix version', t => {
+test('Acceptance: Onix version', t => {
   const onix: OnixJS = new OnixJS({
     cwd,
     port: 8085,
@@ -21,7 +28,7 @@ test('Onix version', t => {
   t.is(onix.version, pkg.version);
 });
 //Test Onix App Starter
-test('Onix app starter', async t => {
+test('Acceptance: Onix app starter', async t => {
   const onix: OnixJS = new OnixJS({
     cwd,
     port: 8083,
@@ -37,7 +44,7 @@ test('Onix app starter', async t => {
 });
 
 //Test Onix App Pinger
-test('Onix app pinger', async t => {
+test('Acceptance: Onix app pinger', async t => {
   const onix: OnixJS = new OnixJS({
     cwd,
     port: 8084,
@@ -48,7 +55,7 @@ test('Onix app pinger', async t => {
   t.true(config.network!.disabled);
 });
 //Test Onix Apps Say Hello
-test('Onix app greeter', async t => {
+test('Acceptance: Onix app greeter', async t => {
   const onix: OnixJS = new OnixJS({cwd, adapters: {websocket: WSAdapter}});
   await onix.load('BobApp@bob.app');
   await onix.load('AliceApp@alice.app');
@@ -62,7 +69,7 @@ test('Onix app greeter', async t => {
 });
 
 //Test Onix RPC component methods
-test('Onix rpc component methods from server', async t => {
+test('Acceptance: Onix rpc component methods from server', async t => {
   const onix: OnixJS = new OnixJS({
     cwd,
     port: 8085,
@@ -75,7 +82,12 @@ test('Onix rpc component methods from server', async t => {
   const operation: IAppOperation = await onix.coordinate(
     'TodoApp.TodoModule.TodoComponent.addTodo',
     <IRequest>{
-      metadata: {stream: false, caller: 'tester', token: 'dummytoken'},
+      metadata: {
+        stream: false,
+        caller: 'tester',
+        token: 'dummytoken',
+        subscription: Utils.uuid(),
+      },
       payload: todo,
     },
   );
@@ -87,52 +99,8 @@ test('Onix rpc component methods from server', async t => {
   t.truthy(result._id);
 });
 
-//Test Onix RPC component methods
-test('Onix rpc component methods from client', async t => {
-  const onix: OnixJS = new OnixJS({
-    cwd,
-    port: 8086,
-    adapters: {websocket: WSAdapter},
-  });
-  await onix.load('TodoApp@todo.app');
-  await onix.start();
-  // Websocket should be available now
-  const client: WebSocket = new WebSocket('ws://127.0.0.1:8086');
-  const todo: TodoModel = new TodoModel();
-  todo.text = 'Onix rpc component methods from client';
-  // Send remote call through websockets
-  client.on('message', async (data: string) => {
-    if (Utils.IsJsonString(data)) {
-      const operation: IAppOperation = JSON.parse(data);
-      if (
-        operation.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE_RESPONSE
-      ) {
-        t.deepEqual(todo.text, operation.message.request.payload.text);
-        t.truthy(operation.message.request.payload._id);
-        await onix.stop();
-      }
-    }
-  });
-
-  client.on('open', () => {
-    // Send Todo
-    client.send(
-      JSON.stringify(<IAppOperation>{
-        uuid: Utils.uuid(),
-        message: {
-          rpc: 'TodoApp.TodoModule.TodoComponent.addTodo',
-          request: <IRequest>{
-            metadata: {stream: false, caller: 'tester', token: 'dummytoken'},
-            payload: todo,
-          },
-        },
-      }),
-    );
-  });
-});
-
 //Test Onix RPC component stream*
-test('Onix rpc component stream', async t => {
+test('Acceptance: Onix rpc component stream', async t => {
   const text: string = 'Hello SDK World';
   // Host Port 8087
   const onix: OnixJS = new OnixJS({
@@ -170,13 +138,11 @@ test('Onix rpc component stream', async t => {
     const result = await componentRef.Method('addTodo').call({text});
     t.is(result.text, text);
   }
-  onix
-    .stop()
-    .then(() => console.log('STOPPED'), e => console.log('SOME ERROR', e));
+  client.disconnect();
 });
 
 //Test Onix Call Connect RPC*
-test('Onix Call Connect RPC', async t => {
+test('Acceptance: Onix Call Connect RPC', async t => {
   const text: string = 'Hello Connected World';
   // Host Port 2999
   const onix: OnixJS = new OnixJS({
@@ -238,7 +204,5 @@ test('Onix Call Connect RPC', async t => {
     const result = await componentRef.Method('exposedCall').call({text});
     t.is(result.text, text);
   }
-  onix
-    .stop()
-    .then(() => console.log('STOPPED'), e => console.log('SOME ERROR', e));
+  client.disconnect();
 });

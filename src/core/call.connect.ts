@@ -1,12 +1,7 @@
-import {
-  IAppOperation,
-  OperationType,
-  IMetaData,
-  ICallConfig,
-  IOnixSchema,
-} from '../interfaces';
+import {ICallConfig, IOnixSchema} from '../interfaces';
 import {Utils} from '@onixjs/sdk/dist/utils';
 import {NodeJS} from '@onixjs/sdk/dist/adapters/node.adapters';
+import {IAppOperation, OperationType, IMetaData} from '@onixjs/sdk';
 /**
  * @class CallConnect
  * @author Jonathan Casarrubias
@@ -66,7 +61,13 @@ export class CallConnect {
    * execute a RPC, that can be either on this SOA Service or within
    * any other SOA Service living in the same cluster.
    */
-  async call<T>(payload: T, metadata: IMetaData = {stream: false}): Promise<T> {
+  async call<T>(
+    payload: T,
+    metadata: IMetaData = {
+      stream: false,
+      subscription: '$anonymous',
+    },
+  ): Promise<T> {
     // Hard copy the configuration
     const config: ICallConfig = JSON.parse(JSON.stringify(this.config));
     // Make sure everything is well configured in order to make this call
@@ -118,7 +119,10 @@ export class CallConnect {
    */
   async stream<T>(
     handler: (payload: T, metadata: IMetaData) => void,
-    metadata: IMetaData = {stream: true},
+    metadata: IMetaData = {
+      stream: true,
+      subscription: '$anonymous',
+    },
   ) {
     // Hard copy the configuration
     const config: ICallConfig = JSON.parse(JSON.stringify(this.config));

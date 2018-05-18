@@ -2,7 +2,8 @@ import {Module} from '../../src/index';
 import {TodoComponent} from './todo.component';
 import {TodoModel} from './todo.model';
 import {TodoService} from './todo.service';
-import {OnixMessage, ModelProvider, OnixMethod} from '../../src/interfaces';
+import {ModelProvider, OnixMethod} from '../../src/interfaces';
+import {OnixMessage} from '@onixjs/sdk';
 /**
  * @class TodoModule
  * @author Jonathan Casarrubias

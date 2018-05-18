@@ -1,12 +1,7 @@
-import {
-  ReflectionKeys,
-  IAppOperation,
-  IComponentConfig,
-  IModuleConfig,
-} from '../interfaces';
+import {ReflectionKeys, IComponentConfig, IModuleConfig} from '../interfaces';
 import {AppFactory, LifeCycle} from '../core';
 import {GroupMatch} from './acl.group.match';
-//import { RoleMatch } from './roles';
+import {IAppOperation} from '@onixjs/sdk';
 /**
  * @class CallResponse
  * @author Jonathan Casarrubias
