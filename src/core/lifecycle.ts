@@ -1,5 +1,5 @@
-import {IApp} from '../index';
-import {OnixMessage} from '../interfaces';
+import {OnixMethod, ModelProvider} from '../index';
+import {OnixMessage} from '@onixjs/sdk';
 /**
  * @class LifeCycle
  * @author Jonathan Casarrubias
@@ -19,9 +19,9 @@ export class LifeCycle {
    * Application.
    */
   async onAppMethodCall(
-    app: IApp,
+    models: ModelProvider,
     message: OnixMessage,
-    method: () => Promise<any>,
+    method: OnixMethod,
   ): Promise<any> {
     // Before Method Call
     const result: any = await method();
@@ -39,9 +39,9 @@ export class LifeCycle {
    * Application.
    */
   async onModuleMethodCall(
-    app: IApp,
+    models: ModelProvider,
     message: OnixMessage,
-    method: () => Promise<any>,
+    method: OnixMethod,
   ): Promise<any> {
     // Before Method Call
     const result: any = await method();
@@ -59,9 +59,9 @@ export class LifeCycle {
    * Application.
    */
   async onComponentMethodCall(
-    app: IApp,
+    models: ModelProvider,
     message: OnixMessage,
-    method: () => Promise<any>,
+    method: OnixMethod,
   ): Promise<any> {
     // Before Method Call
     const result: any = await method();
@@ -79,7 +79,7 @@ export class LifeCycle {
    * Application.
    */
   async onModuleMethodStream(
-    app: IApp,
+    models: ModelProvider,
     message: OnixMessage,
     stream: (handler: (data) => any) => any,
   ): Promise<any> {
@@ -100,7 +100,7 @@ export class LifeCycle {
    * Application.
    */
   async onComponentMethodStream(
-    app: IApp,
+    models: ModelProvider,
     message: OnixMessage,
     stream: (handler: (data) => any) => any,
   ): Promise<any> {

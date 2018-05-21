@@ -1,13 +1,5 @@
 import {fork, ChildProcess} from 'child_process';
-import {
-  IAppDirectory,
-  IAppConfig,
-  OperationType,
-  IAppOperation,
-  OnixMessage,
-  IRequest,
-  OnixConfig,
-} from './interfaces';
+import {IAppDirectory, IAppConfig, OnixConfig} from './interfaces';
 import {SchemaProvider} from './core/schema.provider';
 export * from './core';
 export * from './utils';
@@ -23,6 +15,7 @@ import {Utils} from '@onixjs/sdk/dist/utils';
 import {HostBroker} from './core/host.broker';
 import {promisify} from 'util';
 import {WSAdapter} from './adapters/ws.adapter';
+import {IAppOperation, OperationType, IRequest, OnixMessage} from '@onixjs/sdk';
 /**
  * @class OnixJS
  * @author Jonathan Casarrubias <gh: mean-expert-official>
@@ -74,13 +67,14 @@ export class OnixJS {
     },
   ) {
     this.config = Object.assign({cwd: process.cwd(), port: 3000}, config);
-    // Listener for closing process
-    process.on('exit', async () => {
-      // Signal child processes to stop their internal processes
-      await this.stop();
-    });
     // Log Onix Version
     console.info('Loading Onix Server Version: ', this.version);
+    // Kill Childs On Exit
+    process.on('exit', () =>
+      Object.keys(this._apps).forEach((key: string) => {
+        this._apps[key].process.kill();
+      }),
+    );
   }
   /**
    * @method ping
@@ -97,14 +91,16 @@ export class OnixJS {
         throw new Error(
           `OnixJS Error: Trying to ping unexisting app "${name}".`,
         );
+      const uuid: string = Utils.uuid();
       const operation: IAppOperation = {
-        uuid: Utils.uuid(),
+        uuid,
         type: OperationType.APP_PING,
         message: {
           rpc: 'ping',
           request: {
             metadata: {
               stream: false,
+              subscription: uuid,
             },
             payload: {},
           },
@@ -136,14 +132,16 @@ export class OnixJS {
       Object.keys(this._apps).map(
         (name: string) =>
           new Promise<boolean[]>((resolve, reject) => {
+            const uuid: string = Utils.uuid();
             const operation: IAppOperation = {
-              uuid: Utils.uuid(),
+              uuid,
               type: OperationType.APP_GREET,
               message: {
                 rpc: '[apps].isAlive', // [apps] will be overriden inside each app
                 request: {
                   metadata: {
                     stream: false,
+                    subscription: uuid,
                   },
                   payload: apps,
                 },
@@ -257,8 +255,9 @@ export class OnixJS {
    */
   coordinate(rpc: string, request: IRequest) {
     return new Promise<IAppOperation>((resolve, reject) => {
+      const uuid: string = Utils.uuid();
       const operation: IAppOperation = {
-        uuid: Utils.uuid(),
+        uuid,
         type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
         message: <OnixMessage>{
           rpc,
@@ -289,7 +288,7 @@ export class OnixJS {
    * all the loaded child applications.
    */
   async start(): Promise<OperationType.APP_START_RESPONSE[]> {
-    return Promise.all(
+    const result = await Promise.all(
       // Concatenate an array of promises, starting from Onix Server,
       // Then map each app reference to create promises for start operation.
       Object.keys(this._apps).map(
@@ -306,15 +305,9 @@ export class OnixJS {
             this._apps[name].process.send({type: OperationType.APP_START});
           }),
       ),
-    ).then(
-      (res: OperationType.APP_START_RESPONSE[]) =>
-        new Promise<OperationType.APP_START_RESPONSE[]>(
-          async (resolve, reject) => {
-            await this.startSystemServer();
-            resolve(res);
-          },
-        ),
     );
+    await this.startSystemServer();
+    return result;
   }
   /**
    * @method start
@@ -325,7 +318,7 @@ export class OnixJS {
    * all the loaded child applications.
    */
   async stop(): Promise<OperationType.APP_STOP_RESPONSE[]> {
-    return Promise.all(
+    const result = await Promise.all(
       // Concatenate an array of promises, starting from Onix Server,
       // Then map each app reference to create promises for start operation.
       Object.keys(this._apps).map((name: string) => {
@@ -335,6 +328,7 @@ export class OnixJS {
               'message',
               (operation: IAppOperation) => {
                 if (operation.type === OperationType.APP_STOP_RESPONSE) {
+                  this._apps[name].process.kill();
                   delete this._apps[name];
                   resolve(OperationType.APP_STOP_RESPONSE);
                 }
@@ -344,18 +338,10 @@ export class OnixJS {
           },
         );
       }),
-    ).then(
-      (res: OperationType.APP_STOP_RESPONSE[]) =>
-        new Promise<OperationType.APP_STOP_RESPONSE[]>((resolve, reject) => {
-          this.server.close(() => {
-            // Kill'em all right now.
-            Object.keys(this._apps).forEach(reference =>
-              this._apps[reference].process.kill('SIGHUP'),
-            );
-            resolve(res);
-          });
-        }),
     );
+    // Close the server
+    this.server.close();
+    return result;
   }
   /**
    * @method startSystemServer

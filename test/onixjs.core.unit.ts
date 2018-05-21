@@ -5,12 +5,9 @@ import {AppNotifier} from '../src/core/app.notifier';
 import {AppServer} from '../src/core/app.server';
 import {
   OnixJS,
-  IRequest,
   RPC,
   Stream,
   Module,
-  OperationType,
-  IAppOperation,
   Component,
   Service,
   Inject,
@@ -19,8 +16,6 @@ import {
   IModel,
   Model,
   Property,
-  IApp,
-  IModuleDirectory,
   OnixHTTPRequest,
   IViewRenderer,
   Directory,
@@ -49,7 +44,7 @@ import {Mongoose, Schema} from 'mongoose';
 import {GroupMatch} from '../src/core/acl.group.match';
 import {AllowEveryone} from '../src/core/acl.everyone';
 import {WSAdapter} from '../src/adapters/ws.adapter';
-import {OnixMessage} from '@onixjs/sdk';
+import {OnixMessage, IRequest, OperationType, IAppOperation} from '@onixjs/sdk';
 const cwd = path.join(process.cwd(), 'dist', 'test');
 
 test('Core: AppFactory creates an Application.', async t => {
@@ -136,6 +131,8 @@ test('Core: OnixJS schema builder.', async t => {
     testRPC() {}
     @Stream()
     testSTREAM() {}
+    init() {}
+    destroy() {}
   }
   @Module({
     models: [],
@@ -159,6 +156,8 @@ test('Core: CallResponser invalid call.', async t => {
     testRPC() {}
     @Stream()
     testSTREAM() {}
+    init() {}
+    destroy() {}
   }
   @Module({
     models: [],
@@ -198,6 +197,8 @@ test('Core: CallResponser not authorized call.', async t => {
     }
     @Stream()
     testSTREAM() {}
+    init() {}
+    destroy() {}
   }
   @Module({
     models: [],
@@ -234,6 +235,8 @@ test('Core: CallResponser valid call.', async t => {
     }
     @Stream()
     testSTREAM() {}
+    init() {}
+    destroy() {}
   }
   @Module({
     models: [],
@@ -265,6 +268,8 @@ test('Core: CallResponser invalid call.', async t => {
     testRPC() {}
     @Stream()
     testSTREAM() {}
+    init() {}
+    destroy() {}
   }
   @Module({
     models: [],
@@ -312,6 +317,8 @@ test('Core: CallResponser Hooks.', async t => {
     test(payload) {
       return payload;
     }
+    init() {}
+    destroy() {}
   }
   @Module({
     models: [],
@@ -326,13 +333,14 @@ test('Core: CallResponser Hooks.', async t => {
   factory.notifier = new AppNotifier();
   await factory.setup();
   const responser: CallResponser = new CallResponser(factory);
+  const uuid: string = Utils.uuid();
   const result = await responser.process({
-    uuid: Utils.uuid(),
+    uuid,
     type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
     message: {
       rpc: 'MyApp.MyModule.MyComponent.test',
       request: <IRequest>{
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: {
           text: 'Hello Responser',
         },
@@ -881,22 +889,11 @@ test('Core: Inject Throws Uninstalled Injectable.', async t => {
 // Test Main Life Cycle
 test('Core: main lifecycle.', async t => {
   const result: boolean = true;
-  class MyApp implements IApp {
-    modules: IModuleDirectory;
-    async start(): Promise<boolean> {
-      return result;
-    }
-    async stop(): Promise<boolean> {
-      return result;
-    }
-    isAlive(): boolean {
-      return result;
-    }
-  }
-  const instance: MyApp = new MyApp();
   const lifecycle: LifeCycle = new LifeCycle();
   const r1 = await lifecycle.onAppMethodCall(
-    instance,
+    <T>(name: string): T => {
+      return newFunction<T>();
+    },
     {
       rpc: 'somerpc',
       request: <IRequest>{
@@ -907,7 +904,9 @@ test('Core: main lifecycle.', async t => {
     async () => result,
   );
   const r2 = await lifecycle.onModuleMethodCall(
-    instance,
+    <T>(name: string): T => {
+      return newFunction<T>();
+    },
     {
       rpc: 'somerpc',
       request: <IRequest>{
@@ -918,7 +917,9 @@ test('Core: main lifecycle.', async t => {
     async () => result,
   );
   const r3 = await lifecycle.onComponentMethodCall(
-    instance,
+    <T>(name: string): T => {
+      return newFunction<T>();
+    },
     {
       rpc: 'somerpc',
       request: <IRequest>{
@@ -938,7 +939,7 @@ test('Core: Component Router REST Endpoint.', async t => {
   class StaticComponent {
     @Router.Get('/test/get')
     async test(req, res) {
-      res.end(JSON.stringify({HELLO: 'WORLD'}));
+      return {HELLO: 'WORLD'};
     }
   }
   // Declare Module
@@ -956,26 +957,28 @@ test('Core: Component Router REST Endpoint.', async t => {
     port: 7950,
     modules: [StaticModule],
   });
+  let uuid: string = Utils.uuid();
   // Create Application
   await server.operation({
-    uuid: Utils.uuid(),
+    uuid,
     type: OperationType.APP_CREATE,
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
   });
+  uuid = Utils.uuid();
   // Start Application
   await server.operation({
-    uuid: Utils.uuid(),
+    uuid,
     type: OperationType.APP_START,
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
@@ -987,14 +990,15 @@ test('Core: Component Router REST Endpoint.', async t => {
   const result: any = <any>await client.get('http://127.0.0.1:7950/test/get');
   // Test Service
   t.is(result.HELLO, 'WORLD');
+  uuid = Utils.uuid();
   // Start Application
   await server.operation({
-    uuid: Utils.uuid(),
+    uuid,
     type: OperationType.APP_STOP,
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
@@ -1040,14 +1044,15 @@ test('Core: Component Router Param Hook.', async t => {
     port: 7951,
     modules: [StaticModule],
   });
+  const uuid: string = Utils.uuid();
   // Create Application
   await server.operation({
-    uuid: Utils.uuid(),
+    uuid,
     type: OperationType.APP_CREATE,
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
@@ -1059,7 +1064,7 @@ test('Core: Component Router Param Hook.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
@@ -1084,7 +1089,7 @@ test('Core: Component Router Param Hook.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
@@ -1096,6 +1101,15 @@ test('Core: Component Static.', async t => {
   class StaticComponent {
     @Router.Static('test/static.json')
     async test(req: OnixHTTPRequest, buffer: Buffer) {
+      return buffer.toString();
+    }
+    @Router.Static('test')
+    async test2(req: OnixHTTPRequest, buffer: Buffer) {
+      return buffer.toString();
+    }
+    @Router.Static('test/no.exist.json')
+    async thrower(req: OnixHTTPRequest, buffer: Buffer) {
+      // Wont be executed since path file does not exist
       return buffer.toString();
     }
   }
@@ -1114,26 +1128,28 @@ test('Core: Component Static.', async t => {
     port: 6950,
     modules: [StaticModule],
   });
+  let uuid: string = Utils.uuid();
   // Create Application
   await server.operation({
-    uuid: Utils.uuid(),
+    uuid,
     type: OperationType.APP_CREATE,
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
   });
+  uuid = Utils.uuid();
   // Start Application
   await server.operation({
-    uuid: Utils.uuid(),
+    uuid,
     type: OperationType.APP_START,
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
@@ -1141,12 +1157,23 @@ test('Core: Component Static.', async t => {
   // Create HTTP Client
   const client: NodeJS.HTTP = new NodeJS.HTTP();
   // Call the decorated JSON
-  // Call the decorated JSON
   const result: String = <String>await client.get(
     'http://127.0.0.1:6950/test/static.json',
   );
   // Test Service
   t.is(JSON.parse(result.toString()).hello, 'world');
+  // Call the decorated JSON
+  const dirresult: String = <String>await client.get(
+    'http://127.0.0.1:6950/test/static2.json',
+  );
+  console.log('DIR RESULT: ', dirresult);
+  // Test Service
+  t.is(JSON.parse(dirresult.toString()).hello, 'world');
+  // Thrower/
+  const noexist: String = <String>await client.get(
+    'http://127.0.0.1:6950/test/no.exist.json',
+  );
+  t.true(noexist.includes('Cannot GET /test/no.exist.json'));
   // Start Application
   await server.operation({
     uuid: Utils.uuid(),
@@ -1154,7 +1181,7 @@ test('Core: Component Static.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
@@ -1187,26 +1214,28 @@ test('Core: Component View.', async t => {
     port: 6050,
     modules: [StaticModule],
   });
+  let uuid: string = Utils.uuid();
   // Create Application
   await server.operation({
-    uuid: Utils.uuid(),
+    uuid,
     type: OperationType.APP_CREATE,
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
   });
+  uuid = Utils.uuid();
   // Start Application
   await server.operation({
-    uuid: Utils.uuid(),
+    uuid,
     type: OperationType.APP_START,
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
@@ -1227,7 +1256,7 @@ test('Core: Component View.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
@@ -1260,18 +1289,20 @@ test('Core: Component View Immutable.', async t => {
     port: 6150,
     modules: [StaticModule],
   });
+  let uuid: string = Utils.uuid();
   // Create Application
   await server.operation({
-    uuid: Utils.uuid(),
+    uuid,
     type: OperationType.APP_CREATE,
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
   });
+  uuid = Utils.uuid();
   // Start Application
   await server.operation({
     uuid: Utils.uuid(),
@@ -1279,7 +1310,7 @@ test('Core: Component View Immutable.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
@@ -1300,7 +1331,7 @@ test('Core: Component View Immutable.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
@@ -1333,26 +1364,28 @@ test('Core: Component View FilePath Not Exist.', async t => {
     port: 6350,
     modules: [StaticModule],
   });
+  let uuid: string = Utils.uuid();
   // Create Application
   await server.operation({
-    uuid: Utils.uuid(),
+    uuid,
     type: OperationType.APP_CREATE,
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
   });
+  uuid = Utils.uuid();
   // Start Application
   await server.operation({
-    uuid: Utils.uuid(),
+    uuid,
     type: OperationType.APP_START,
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
@@ -1364,14 +1397,15 @@ test('Core: Component View FilePath Not Exist.', async t => {
   // Test Service
   t.is(result.code, 404);
   t.is(result.message, 'Oops!!! something went wrong.');
+  uuid = Utils.uuid();
   // Start Application
   await server.operation({
-    uuid: Utils.uuid(),
+    uuid,
     type: OperationType.APP_STOP,
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
@@ -1419,18 +1453,20 @@ test('Core: View Renderer.', async t => {
     port: 6060,
     modules: [DynamicModule],
   });
+  let uuid: string = Utils.uuid();
   // Create Application
   await server.operation({
-    uuid: Utils.uuid(),
+    uuid,
     type: OperationType.APP_CREATE,
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
   });
+  uuid = Utils.uuid();
   // Start Application
   await server.operation({
     uuid: Utils.uuid(),
@@ -1438,7 +1474,7 @@ test('Core: View Renderer.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
@@ -1458,7 +1494,7 @@ test('Core: View Renderer.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false},
+        metadata: {stream: false, subscription: uuid},
         payload: '',
       },
     },
@@ -1503,15 +1539,17 @@ test('Core: Notifier.', async t => {
 test('CORE: ACL Group Match', async t => {
   // SOME DUMMY METHOD NAME
   const name: string = 'somemethod';
+  const uuid: string = Utils.uuid();
   // SOME DUMMY OPERATION
   const operation: IAppOperation = {
-    uuid: Utils.uuid(),
+    uuid,
     type: OperationType.ONIX_REMOTE_CALL_PROCEDURE,
     message: {
       rpc: name,
       request: {
         metadata: {
           stream: false,
+          subscription: uuid,
         },
         payload: {},
       },
@@ -1537,3 +1575,7 @@ test('CORE: ACL Group Match', async t => {
   // TEST IF HAS ACCESS
   t.true(hasAccess);
 });
+
+function newFunction<T>(): T {
+  return <T>{};
+}

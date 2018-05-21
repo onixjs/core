@@ -1,10 +1,5 @@
 import 'reflect-metadata';
-import {
-  OperationType,
-  IAppOperation,
-  IAppConfig,
-  AppConstructor,
-} from '../index';
+import {IAppConfig, AppConstructor} from '../index';
 import {AppFactory} from './app.factory';
 import {CallResponser} from './call.responser';
 import {CallStreamer} from './call.streamer';
@@ -14,6 +9,8 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
 import * as finalhandler from 'finalhandler';
+import {IAppOperation, OperationType} from '@onixjs/sdk';
+import {NotifyEvents} from './notify.events';
 /**
  * @function AppServer
  * @author Jonathan Casarrubias
@@ -121,17 +118,24 @@ export class AppServer {
         // Setup responser and streamer
         this.responser = new CallResponser(this.factory);
         this.streamer = new CallStreamer(this.factory);
-        // Return IO Stream Message
-        if (process.send) {
-          process.send({
-            uuid: operation.uuid,
-            type: OperationType.APP_CREATE_RESPONSE,
-            message: {
-              request: {
-                payload: schema,
+        try {
+          // Return IO Stream Message
+          if (process.send) {
+            process.send({
+              uuid: operation.uuid,
+              type: OperationType.APP_CREATE_RESPONSE,
+              message: {
+                request: {
+                  payload: schema,
+                },
               },
-            },
-          });
+            });
+          }
+        } catch (e) {
+          console.log(
+            'ONIXJS: HostBroker is not available, this process is going down.',
+          );
+          process.kill(1);
         }
         break;
       // Event sent from the broker when starting a project
@@ -149,6 +153,32 @@ export class AppServer {
         // Send back result
         if (process.send)
           process.send({type: OperationType.APP_START_RESPONSE});
+        break;
+      // Event sent from the broker when a client has been disconnected
+      case OperationType.ONIX_REMOTE_UNREGISTER_CLIENT:
+        this.notifier.emit(
+          NotifyEvents.CLIENT_CLOSED,
+          operation.message.request.metadata.subscription,
+        );
+        // Send back result
+        if (process.send)
+          process.send({
+            uuid: operation.uuid,
+            type: OperationType.ONIX_REMOTE_UNREGISTER_CLIENT_RESPONSE,
+          });
+        break;
+      // Event sent from the broker when a client has been disconnected
+      case OperationType.ONIX_REMOTE_CALL_STREAM_UNSUBSCRIBE:
+        this.notifier.emit(
+          NotifyEvents.CLIENT_UNSUBSCRIBED,
+          operation.message.request.payload.uuid,
+        );
+        // Send back result
+        if (process.send)
+          process.send({
+            uuid: operation.uuid,
+            type: OperationType.ONIX_REMOTE_CALL_STREAM_UNSUBSCRIBE_RESPONSE,
+          });
         break;
       // Event sent from the broker when stoping a project
       case OperationType.APP_STOP:
@@ -177,9 +207,7 @@ export class AppServer {
                 message: {
                   rpc: operation.message.rpc,
                   request: {
-                    metadata: {
-                      /* HERE We might want to return server-side metadata*/
-                    },
+                    metadata: operation.message.request.metadata,
                     payload: chunk,
                   },
                 },
@@ -196,9 +224,7 @@ export class AppServer {
               message: {
                 rpc: operation.message.rpc,
                 request: {
-                  metadata: {
-                    /* HERE We might want to return server-side metadata*/
-                  },
+                  metadata: operation.message.request.metadata,
                   payload: result,
                 },
               },

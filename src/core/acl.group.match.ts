@@ -1,5 +1,4 @@
 import {
-  IAppOperation,
   IComponentConfig,
   promiseSeries,
   IACLRule,
@@ -7,6 +6,7 @@ import {
   Injector,
   IModuleConfig,
 } from '..';
+import {IAppOperation} from '@onixjs/sdk';
 /**
  * @class GroupMatch
  * @author Joanthan Casarrubias

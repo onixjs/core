@@ -1,4 +1,4 @@
-import {ReflectionKeys} from '../index';
+import {ReflectionKeys, RPCMethod, IComponent} from '../index';
 /**
  * @function RPC
  * @author Jonathan Casarrubias
@@ -6,7 +6,11 @@ import {ReflectionKeys} from '../index';
  * @description This decorator will expose component methods
  */
 export function RPC() {
-  return function(target: object, propertyKey: string) {
+  return function(
+    target: IComponent,
+    propertyKey: string,
+    descriptor: TypedPropertyDescriptor<RPCMethod>,
+  ) {
     Reflect.defineMetadata(
       ReflectionKeys.RPC_METHOD,
       true,

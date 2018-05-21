@@ -32,10 +32,10 @@ export class BobComponent implements IComponent {
   destroy() {}
 
   @RPC()
-  async exposedCall(payload) {
+  async exposedCall(payload, metadata) {
     try {
       this.connect.config.method = 'callMe';
-      const result = await this.connect.call(payload);
+      const result = await this.connect.call(payload, metadata);
       return result;
     } catch (e) {
       return e.message;

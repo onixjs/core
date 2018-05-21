@@ -8,3 +8,4 @@ export * from './app.notifier';
 export * from './call.connect';
 export * from './acl.groups';
 export * from './acl.everyone';
+export * from './notify.events';

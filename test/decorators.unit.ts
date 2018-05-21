@@ -226,6 +226,8 @@ test('@RPC Method should be decorated.', t => {
   class MyClass {
     @RPC()
     myRPC() {}
+    init() {}
+    destroy() {}
   }
   const instance: MyClass = new MyClass();
   const enabled: boolean = Reflect.getMetadata(

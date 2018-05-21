@@ -1,4 +1,5 @@
-import {IRequest, AccessType, IGroup} from '../interfaces';
+import {AccessType, IGroup} from '../interfaces';
+import {IRequest} from '@onixjs/sdk';
 /**
  * @namespace Groups
  * @author Jonathan Casarrubias

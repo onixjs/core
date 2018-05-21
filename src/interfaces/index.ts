@@ -2,6 +2,7 @@ import {ChildProcess} from 'child_process';
 import * as http from 'http';
 import * as https from 'https';
 import {AppNotifier} from '..';
+import {OnixMessage, IRequest, IMetaData} from '@onixjs/sdk';
 /**
  * @interface IAppConfig
  * @author Jonathan Casarrubias <gh: mean-expert-official>
@@ -134,35 +135,6 @@ export interface IApp {
   isAlive(): boolean;
 }
 /**
- * @author Jonathan Casarrubias
- * @interface IAppOperation
- * @description Internal system operation, executed when
- * RPC calls are made.
- */
-export interface IAppOperation {
-  uuid: string;
-  type: OperationType;
-  message: OnixMessage;
-}
-/**
- * @interface OnixMessage
- * @author Jonathan Casarrubias
- * @description OnixMessage Contract
- */
-export interface OnixMessage {
-  rpc: string;
-  request: IRequest;
-}
-/**
- * @interface IRequest
- * @author Jonathan Casarrubias
- * @description IRequest inteface
- */
-export interface IRequest {
-  metadata: IMetaData;
-  payload: any;
-}
-/**
  * @interface ICallConfig
  * @author Jonathan Casarrubias
  * @description ICallConfig inteface will
@@ -198,28 +170,6 @@ export interface IOnixSchema {
 }
 /**
  * @author Jonathan Casarrubias
- * @enum OperationType
- * @description Enum used for system level operations.
- */
-export enum OperationType {
-  /*0*/ APP_CREATE,
-  /*1*/ APP_CREATE_RESPONSE,
-  /*2*/ APP_PING,
-  /*3*/ APP_PING_RESPONSE,
-  /*4*/ APP_START,
-  /*5*/ APP_START_RESPONSE,
-  /*6*/ APP_STOP,
-  /*7*/ APP_STOP_RESPONSE,
-  /*8*/ APP_DESTROY,
-  /*9*/ APP_DESTROY_RESPONSE,
-  /*10*/ APP_GREET,
-  /*11*/ APP_GREET_RESPONSE,
-  /*12*/ ONIX_REMOTE_CALL_STREAM,
-  /*13*/ ONIX_REMOTE_CALL_PROCEDURE,
-  /*14*/ ONIX_REMOTE_CALL_PROCEDURE_RESPONSE,
-}
-/**
- * @author Jonathan Casarrubias
  * @interface IAppDirectory
  * @description Child process directory for the onix
  * process manager. This directory is used for signaling
@@ -238,17 +188,6 @@ export interface IAppDirectory {
  */
 export interface IComponentDirectory {
   [key: string]: any;
-}
-/**
- * @interface IMetaData
- * @author Jonathan Casarrubias
- * @description Interface used as generic IMetaData class.
- */
-export interface IMetaData {
-  [key: string]: any;
-  sub?: string;
-  token?: string;
-  stream: boolean;
 }
 /**
  * @interface Constructor
@@ -467,6 +406,15 @@ export interface OnixHTTPRequest extends http.IncomingMessage {
 export interface IViewRenderer {
   process(view: string, args: Directory): string;
 }
+
+export interface RPCMethod {
+  (payload: any, metadata: IMetaData);
+}
+
+export interface StreamMethod {
+  <T>(payload: T, metadata: IMetaData, uuid: string): Promise<T>;
+}
+
 /**
  * @author Jonathan Casarrubias
  * @enum ReflectionKeys
