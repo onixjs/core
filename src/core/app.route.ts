@@ -184,9 +184,12 @@ export namespace AppRoute {
    */
   export class Load {
     static async file(instance, method, config, pathname, req, res, next) {
+      // Get configured filename from the config.file path.
+      const file: string =
+        typeof config.file === 'string' ? config.file.split('/').pop() : null;
       // Verify if this static middleware should treat
       // this request, otherwise just call the next one
-      if (!pathname.includes(config.file) && !pathname.includes(req.url)) {
+      if (!pathname.includes(file) && !pathname.includes(req.url)) {
         return next();
       }
       if (req.url && req.method) {
