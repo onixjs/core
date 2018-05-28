@@ -45,9 +45,18 @@ export class HostBroker {
     // Listen for WebSocket Requests
     wss.on('connection', ws => {
       // Register a message event listener
-      ws.on('message', (data: string) =>
-        this.wsHandler(ws, Utils.IsJsonString(data) ? JSON.parse(data) : data),
-      );
+      ws.on('message', (data: string) => {
+        // Verify if request is a ping timestamp
+        if (!isNaN(parseInt(data))) {
+          ws.send(data);
+          // Else handle as an application operation
+        } else {
+          this.wsHandler(
+            ws,
+            Utils.IsJsonString(data) ? JSON.parse(data) : data,
+          );
+        }
+      });
       // Add On Close Listener
       ws.onclose = async () => await this.close(ws);
       // Add On Error Listener
@@ -106,7 +115,10 @@ export class HostBroker {
     }
     // Route Message to the right application
     const callee: string = operation.message.rpc.split('.').shift() || '';
-    if (this.apps[callee]) {
+    if (
+      this.apps[callee] &&
+      this.subscriptions[operation.message.request.metadata.subscription]
+    ) {
       const index: number = this.subscriptions[
         operation.message.request.metadata.subscription
       ]
@@ -129,7 +141,7 @@ export class HostBroker {
       // through std io stream
       this.apps[callee].process.send(operation);
     } else {
-      throw new Error('Unable to find callee application');
+      throw new Error('Unable to find callee application or subscription');
     }
   }
   /**
