@@ -6,8 +6,8 @@ OnixJS - Enterprise Grade Framework
 
 > **Disclaimer**: This framework is in active development and won't be ready for production until we reach release candidate.
  - **Alpha release date**: Feb 2018
- - **Estimated date for beta release**: MAY 15 2018
- - **Estimated date for release candidate**: EO2Q/2018
+ - **Beta release date**: May 15 2018
+ - **Estimated date for release candidate**: EOY 2018
 
 ## Installation
 

@@ -207,49 +207,51 @@ export class HostBroker {
   }
 
   private async close(ws: WebSocket) {
-    // Notify Components that this client subscription
-    // Has been terminated, therefore listeners needs to be removed.
-    // Create Unregistration operation to signal apps for cleaning up.
-    const operation: IAppOperation = {
-      uuid: Utils.uuid(),
-      type: OperationType.ONIX_REMOTE_UNREGISTER_CLIENT,
-      message: {
-        rpc: 'unsubscribe',
-        request: {
-          metadata: {
-            stream: false,
-            subscription: ws['onix.uuid'],
+    if (this.subscriptions[ws['onix.uuid']]) {
+      // Notify Components that this client subscription
+      // Has been terminated, therefore listeners needs to be removed.
+      // Create Unregistration operation to signal apps for cleaning up.
+      const operation: IAppOperation = {
+        uuid: Utils.uuid(),
+        type: OperationType.ONIX_REMOTE_UNREGISTER_CLIENT,
+        message: {
+          rpc: 'unsubscribe',
+          request: {
+            metadata: {
+              stream: false,
+              subscription: ws['onix.uuid'],
+            },
+            payload: {},
           },
-          payload: {},
         },
-      },
-    };
-    // Send a client closing signal
-    await Promise.all(
-      this.subscriptions[ws['onix.uuid']].namespaces().map(
-        (app: string) =>
-          new Promise((resolve, reject) => {
-            const index: number = this.subscriptions[ws['onix.uuid']]
-              .namespace(app)
-              .add((response: IAppOperation) => {
-                if (
-                  response.uuid === operation.uuid &&
-                  response.type ===
-                    OperationType.ONIX_REMOTE_UNREGISTER_CLIENT_RESPONSE
-                ) {
-                  this.subscriptions[ws['onix.uuid']].remove(index);
-                  resolve();
-                }
-              });
-            // Send close signal
-            if (this.apps[app] && this.apps[app].process)
-              this.apps[app].process.send(operation);
-          }),
-      ),
-    );
-    // Everything is cool now, remove any reference
-    // For this subscription
-    delete this.subscriptions[ws['onix.uuid']];
+      };
+      // Send a client closing signal
+      await Promise.all(
+        this.subscriptions[ws['onix.uuid']].namespaces().map(
+          (app: string) =>
+            new Promise((resolve, reject) => {
+              const index: number = this.subscriptions[ws['onix.uuid']]
+                .namespace(app)
+                .add((response: IAppOperation) => {
+                  if (
+                    response.uuid === operation.uuid &&
+                    response.type ===
+                      OperationType.ONIX_REMOTE_UNREGISTER_CLIENT_RESPONSE
+                  ) {
+                    this.subscriptions[ws['onix.uuid']].remove(index);
+                    resolve();
+                  }
+                });
+              // Send close signal
+              if (this.apps[app] && this.apps[app].process)
+                this.apps[app].process.send(operation);
+            }),
+        ),
+      );
+      // Everything is cool now, remove any reference
+      // For this subscription
+      delete this.subscriptions[ws['onix.uuid']];
+    }
     console.log('A Client has been disconnected');
   }
 }
