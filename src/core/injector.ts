@@ -8,6 +8,7 @@ import {
   IModelConfig,
   IViewRenderer,
   promiseSeries,
+  IModelRegister,
 } from '..';
 /**
  * @class Injector
@@ -204,12 +205,28 @@ export class Injector {
         schema[propConfig.name] = propConfig.type;
       }
     });
+    // Model register object
+    let register: IModelRegister = {
+      class: Model,
+      model,
+      schema,
+    };
+    // Execute pre hook if any
+    register =
+      modelConfig.hooks && modelConfig.hooks.before
+        ? await modelConfig.hooks!.before!(register)
+        : register;
     // This one should not be async
-    const instance = datasource.register(Model, model, schema);
+    register = await datasource.register(register);
+    // Execute post hook if any
+    register =
+      modelConfig.hooks && modelConfig.hooks.after
+        ? await modelConfig.hooks!.after!(register)
+        : register;
     // Persist reference in memory
-    this.set(Model.name, instance);
+    this.set(Model.name, register.model);
     // Return instance
-    return instance;
+    return register.model;
   }
 
   /**

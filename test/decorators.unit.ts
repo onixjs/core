@@ -5,13 +5,13 @@ import {
   ReflectionKeys,
   DataSource,
   IDataSource,
-  IModel,
   Inject,
   Constructor,
   Service,
   Model,
   IMiddleware,
   RouterTypes,
+  IModelRegister,
 } from '../src';
 import {Router} from '../src/decorators/onix.router';
 import {RPC} from '../src/decorators/rpc';
@@ -39,7 +39,7 @@ test('@Datasource decorator should define config metadata.', t => {
     async disconnect() {
       throw new Error('Method not implemented.');
     }
-    register(Class: Constructor, model: any, schema: IModel) {
+    async register(r: IModelRegister): Promise<IModelRegister> {
       throw new Error('Method not implemented.');
     }
   }
@@ -103,7 +103,7 @@ test('@InjectModel decorator should request an injection.', t => {
       async disconnect() {
         throw new Error('Method not implemented.');
       }
-      register(Class: Constructor, model: any, schema: IModel) {
+      async register(r: IModelRegister): Promise<IModelRegister> {
         throw new Error('Method not implemented.');
       }
     },

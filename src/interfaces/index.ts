@@ -206,7 +206,7 @@ export interface Constructor {
 export interface IDataSource {
   connect();
   disconnect();
-  register(Class: Constructor, model, schema);
+  register(register: IModelRegister): Promise<IModelRegister>;
 }
 /**
  * @interface IModelConfig
@@ -216,7 +216,16 @@ export interface IDataSource {
  */
 export interface IModelConfig {
   datasource: new () => IDataSource;
-  schema?: {[key: string]: any};
+  hooks?: {
+    before?: (register: IModelRegister) => Promise<IModelRegister>;
+    after?: (register: IModelRegister) => Promise<IModelRegister>;
+  };
+}
+
+export interface IModelRegister {
+  class: Constructor;
+  model;
+  schema;
 }
 /**
  * @interface AccessType

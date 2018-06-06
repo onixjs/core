@@ -321,16 +321,16 @@ export class AppServer {
       apps.map(
         (name: string) =>
           new Promise<boolean>(async (resolve, reject) => {
-            const result: boolean = await this.responser.process(
-              <IAppOperation>{
-                uuid: operation.uuid,
-                type: OperationType.APP_GREET_RESPONSE,
-                message: {
-                  rpc: `${name}.isAlive`,
-                  request: {metadata: {}, payload: {}},
-                },
+            const result: boolean = await this.responser.process(<
+              IAppOperation
+            >{
+              uuid: operation.uuid,
+              type: OperationType.APP_GREET_RESPONSE,
+              message: {
+                rpc: `${name}.isAlive`,
+                request: {metadata: {}, payload: {}},
               },
-            );
+            });
             resolve(result);
           }),
       ),

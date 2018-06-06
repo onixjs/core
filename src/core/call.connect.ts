@@ -47,10 +47,12 @@ export class CallConnect {
     }
     // If the user is sending a token then verify with the sso.
     // TODO Add Result Interace from @onixjs/sdk
-    this.schema = <IOnixSchema>await this.client.get(
-      `http://${
-        this.config.broker.host ? this.config.broker.host : '127.0.0.1'
-      }:${this.config.broker.port}/.well-known/onixjs-schema`,
+    this.schema = <IOnixSchema>(
+      await this.client.get(
+        `http://${
+          this.config.broker.host ? this.config.broker.host : '127.0.0.1'
+        }:${this.config.broker.port}/.well-known/onixjs-schema`,
+      )
     );
   }
   /**

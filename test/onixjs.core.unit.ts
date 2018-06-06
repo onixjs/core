@@ -20,7 +20,6 @@ import {
   IViewRenderer,
   Directory,
   ViewRenderer,
-  Constructor,
   Router,
   IComponentConfig,
   IACLRule,
@@ -28,6 +27,7 @@ import {
   GroupList,
   ModelProvider,
   OnixMethod,
+  IModelRegister,
 } from '../src';
 import {Groups} from '../src/core/acl.groups';
 import {LifeCycle} from '../src/core/lifecycle';
@@ -40,7 +40,7 @@ import * as dot from 'dot';
 import {CallStreamer} from '../src/core/call.streamer';
 import {NodeJS} from '@onixjs/sdk/dist/adapters/node.adapters';
 import {Utils} from '@onixjs/sdk/dist/utils';
-import {Mongoose, Schema} from 'mongoose';
+import {Mongoose} from 'mongoose';
 import {GroupMatch} from '../src/core/acl.group.match';
 import {AllowEveryone} from '../src/core/acl.everyone';
 import {WSAdapter} from '../src/adapters/ws.adapter';
@@ -673,8 +673,8 @@ test('Core: host boot ssl activation file.', async t => {
   // Create HTTP Client
   const client: NodeJS.HTTP = new NodeJS.HTTP();
   // Call the decorated JSON
-  const result: any = <any>await client.get(
-    'http://127.0.0.1:5000/.well-known/activation.txt',
+  const result: any = <any>(
+    await client.get('http://127.0.0.1:5000/.well-known/activation.txt')
   );
   // Test Service
   t.is(result, 'activation-hello-world');
@@ -704,8 +704,8 @@ test('Core: host boot ssl activation file missing directory.', async t => {
   // Create HTTP Client
   const client: NodeJS.HTTP = new NodeJS.HTTP();
   // Call the decorated JSON
-  const result: any = <any>await client.get(
-    'http://127.0.0.1:5001/.well-known/activation.txt',
+  const result: any = <any>(
+    await client.get('http://127.0.0.1:5001/.well-known/activation.txt')
   );
   // Test Service
   t.is(result.code, 404);
@@ -787,8 +787,9 @@ test('Core: Inject Model and Services.', async t => {
     async disconnect() {
       return this.mongoose.disconnect();
     }
-    register(Class: Constructor, ins: IModel, schema: Schema): any {
-      return this.mongoose.model(Class.name, schema);
+    async register(R: IModelRegister): Promise<IModelRegister> {
+      R.model = this.mongoose.model(R.class.name, R.schema);
+      return R;
     }
   }
   // Model
@@ -844,16 +845,17 @@ test('Core: Inject Throws Uninstalled Injectable.', async t => {
   @DataSource()
   class MongooseDatasource implements IDataSource {
     private mongoose: Mongoose = new Mongoose();
-    connect() {
+    async connect() {
       return this.mongoose.connect(
         'mongodb://lb-sdk-test:lb-sdk-test@ds153400.mlab.com:53400/heroku_pmkjxjwz',
       );
     }
-    disconnect() {
+    async disconnect() {
       return this.mongoose.disconnect();
     }
-    register(Class: Constructor, model: IModel, schema: Schema): any {
-      return this.mongoose.model(Class.name, schema);
+    async register(R: IModelRegister): Promise<IModelRegister> {
+      R.model = this.mongoose.model(R.class.name, R.schema);
+      return R;
     }
   }
   // Model
@@ -1073,11 +1075,11 @@ test('Core: Component Router Param Hook.', async t => {
   const client: NodeJS.HTTP = new NodeJS.HTTP();
   // Call the decorated JSON
   // Call the decorated JSON
-  const resultA: any = <any>await client.get(
-    'http://127.0.0.1:7951/test/0/params',
+  const resultA: any = <any>(
+    await client.get('http://127.0.0.1:7951/test/0/params')
   );
-  const resultB: any = <any>await client.get(
-    'http://127.0.0.1:7951/test/1/params',
+  const resultB: any = <any>(
+    await client.get('http://127.0.0.1:7951/test/1/params')
   );
   // Test Service
   t.is(resultA.text, 'Foo');
@@ -1157,21 +1159,21 @@ test('Core: Component Static.', async t => {
   // Create HTTP Client
   const client: NodeJS.HTTP = new NodeJS.HTTP();
   // Call the decorated JSON
-  const result: String = <String>await client.get(
-    'http://127.0.0.1:6950/test/static.json',
+  const result: String = <String>(
+    await client.get('http://127.0.0.1:6950/test/static.json')
   );
   // Test Service
   t.is(JSON.parse(result.toString()).hello, 'world');
   // Call the decorated JSON
-  const dirresult: String = <String>await client.get(
-    'http://127.0.0.1:6950/test/static2.json',
+  const dirresult: String = <String>(
+    await client.get('http://127.0.0.1:6950/test/static2.json')
   );
   console.log('DIR RESULT: ', dirresult);
   // Test Service
   t.is(JSON.parse(dirresult.toString()).hello, 'world');
   // Thrower/
-  const noexist: String = <String>await client.get(
-    'http://127.0.0.1:6950/test/no.exist.json',
+  const noexist: String = <String>(
+    await client.get('http://127.0.0.1:6950/test/no.exist.json')
   );
   t.true(noexist.includes('Cannot GET /test/no.exist.json'));
   // Start Application
@@ -1244,8 +1246,8 @@ test('Core: Component View.', async t => {
   const client: NodeJS.HTTP = new NodeJS.HTTP();
   // Call the decorated JSON
   // Call the decorated JSON
-  const result: String = <String>await client.get(
-    'http://127.0.0.1:6050/my-static',
+  const result: String = <String>(
+    await client.get('http://127.0.0.1:6050/my-static')
   );
   // Test Service
   t.is(JSON.parse(result.toString()).hello, 'world');
@@ -1319,8 +1321,8 @@ test('Core: Component View Immutable.', async t => {
   const client: NodeJS.HTTP = new NodeJS.HTTP();
   // Call the decorated JSON
   // Call the decorated JSON
-  const result: String = <String>await client.get(
-    'http://127.0.0.1:6150/my-static',
+  const result: String = <String>(
+    await client.get('http://127.0.0.1:6150/my-static')
   );
   // Test Service
   t.is(JSON.parse(result.toString()).hello, 'world');
@@ -1482,8 +1484,8 @@ test('Core: View Renderer.', async t => {
   // Create HTTP Client
   const client: NodeJS.HTTP = new NodeJS.HTTP();
   // Call the decorated JSON
-  const result: String = <String>await client.get(
-    'http://127.0.0.1:6060/my-dynamic',
+  const result: String = <String>(
+    await client.get('http://127.0.0.1:6060/my-dynamic')
   );
   // Test Service
   t.is(JSON.parse(result.toString()).HELLO, 'WORLD');
