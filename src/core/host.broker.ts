@@ -153,7 +153,10 @@ export class HostBroker {
             }
             // If this was a stream unsubscription call, then remove
             // the internal stream subscription listener.
-            if (OperationType.ONIX_REMOTE_CALL_STREAM_UNSUBSCRIBE) {
+            if (
+              operation.type ===
+              OperationType.ONIX_REMOTE_CALL_STREAM_UNSUBSCRIBE
+            ) {
               // First of all remove the listener
               this.registers[operation.message.request.metadata.register]
                 .namespace(callee)
