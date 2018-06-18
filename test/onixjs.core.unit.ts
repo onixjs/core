@@ -967,7 +967,7 @@ test('Core: Component Router REST Endpoint.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -980,7 +980,7 @@ test('Core: Component Router REST Endpoint.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1000,7 +1000,7 @@ test('Core: Component Router REST Endpoint.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1054,7 +1054,7 @@ test('Core: Component Router Param Hook.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1066,7 +1066,7 @@ test('Core: Component Router Param Hook.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1091,7 +1091,7 @@ test('Core: Component Router Param Hook.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1138,7 +1138,7 @@ test('Core: Component Static.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1151,7 +1151,7 @@ test('Core: Component Static.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1183,7 +1183,7 @@ test('Core: Component Static.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1224,7 +1224,7 @@ test('Core: Component View.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1237,7 +1237,7 @@ test('Core: Component View.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1258,7 +1258,7 @@ test('Core: Component View.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1299,7 +1299,7 @@ test('Core: Component View Immutable.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1312,7 +1312,7 @@ test('Core: Component View Immutable.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1333,7 +1333,7 @@ test('Core: Component View Immutable.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1374,7 +1374,7 @@ test('Core: Component View FilePath Not Exist.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1387,7 +1387,7 @@ test('Core: Component View FilePath Not Exist.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1407,7 +1407,7 @@ test('Core: Component View FilePath Not Exist.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1463,7 +1463,7 @@ test('Core: View Renderer.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1476,7 +1476,7 @@ test('Core: View Renderer.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1496,7 +1496,7 @@ test('Core: View Renderer.', async t => {
     message: {
       rpc: '',
       request: {
-        metadata: {stream: false, subscription: uuid},
+        metadata: {stream: false, register: uuid},
         payload: '',
       },
     },
@@ -1551,7 +1551,7 @@ test('CORE: ACL Group Match', async t => {
       request: {
         metadata: {
           stream: false,
-          subscription: uuid,
+          register: uuid,
         },
         payload: {},
       },

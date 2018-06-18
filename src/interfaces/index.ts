@@ -371,7 +371,7 @@ export interface Directory {
   [key: string]: any;
 }
 
-export interface ErrorResponse {
+export interface IErrorResponse {
   code: number;
   message: string;
   stack?: string;

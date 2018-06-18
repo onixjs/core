@@ -34,7 +34,7 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-beta.4';
+    return '1.0.0-beta.5';
   }
   /**
    * @property router
@@ -100,7 +100,7 @@ export class OnixJS {
           request: {
             metadata: {
               stream: false,
-              subscription: uuid,
+              register: uuid,
             },
             payload: {},
           },
@@ -141,7 +141,7 @@ export class OnixJS {
                 request: {
                   metadata: {
                     stream: false,
-                    subscription: uuid,
+                    register: uuid,
                   },
                   payload: apps,
                 },

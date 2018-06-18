@@ -14,6 +14,7 @@ import {
   OperationType,
   IAppOperation,
   IRequest,
+  Subscription,
 } from '@onixjs/sdk';
 import {NodeJS} from '@onixjs/sdk/dist/adapters/node.adapters';
 import {WSAdapter} from '../src/adapters/ws.adapter';
@@ -86,7 +87,7 @@ test('Acceptance: Onix rpc component methods from server', async t => {
         stream: false,
         caller: 'tester',
         token: 'dummytoken',
-        subscription: Utils.uuid(),
+        register: Utils.uuid(),
       },
       payload: todo,
     },
@@ -131,11 +132,16 @@ test('Acceptance: Onix rpc component stream', async t => {
       'TodoModule',
     ).Component('TodoComponent');
     // Set on create listener
-    componentRef.Method('onCreate').stream(data => {
-      t.is(data.text, text);
-    });
+    const subscription: Subscription = await componentRef
+      .Method('onCreate')
+      .stream(data => {
+        t.is(data.text, text);
+      });
     // Send new todo
     const result = await componentRef.Method('addTodo').call({text});
+    // Unsubscribe the stream
+    await subscription.unsubscribe();
+    // Terminate test
     t.is(result.text, text);
   }
   client.disconnect();
@@ -174,7 +180,12 @@ test('Acceptance: Onix Call Connect RPC', async t => {
       'BobModule',
     ).Component('BobComponent');
     // Set on create listener
-    componentRef.Method('exposedStream').stream(data => t.is(data.text, text));
+    const subscription: Subscription = await componentRef
+      .Method('exposedStream')
+      .stream(async data => {
+        t.is(data.text, text);
+        await subscription.unsubscribe();
+      });
     // Test wrong app through exposed proxy
     const e1 = await componentRef.Method('exposedFakeAppCall').call({});
     console.log('E1: ', e1);

@@ -170,8 +170,8 @@ export class AppServer {
       // Event sent from the broker when a client has been disconnected
       case OperationType.ONIX_REMOTE_CALL_STREAM_UNSUBSCRIBE:
         this.notifier.emit(
-          NotifyEvents.CLIENT_UNSUBSCRIBED,
-          operation.message.request.payload.uuid,
+          NotifyEvents.STREAM_UNSUBSCRIBED,
+          operation.message.request.metadata.subscription,
         );
         // Send back result
         if (process.send)
