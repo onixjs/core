@@ -115,43 +115,47 @@ export class CallResponser {
         )) ||
         systemcall
       ) {
-        // Execute main hook, might be app/system or module level.
-        const result = await mainHook(
-          (name: string) => this.factory.scopes[segments[1]].get(name),
-          operation.message,
-          async (): Promise<any> => {
-            // If there is a custom component level hook for this call
-            // then execute it first.
-            if (slaveHook) {
-              // Do whatever the developer defined in component config
-              return await slaveHook(
-                (name: string) => this.factory.scopes[segments[1]].get(name),
-                operation.message,
-                async (): Promise<any> => {
-                  // Ok cool, let me finish. lol (freaking genius)
-                  return method
-                    ? await method.call(
-                        scope,
-                        operation.message.request.payload,
-                        operation.message.request.metadata,
-                      )
-                    : null;
-                },
-              );
-            } else {
-              // Else just call the requested method now.
-              return method
-                ? await method.call(
-                    scope,
-                    operation.message.request.payload,
-                    operation.message.request.metadata,
-                  )
-                : null;
-            }
-          },
-        );
-        // Resolve promise
-        resolve(result);
+        try {
+          // Execute main hook, might be app/system or module level.
+          const result = await mainHook(
+            (name: string) => this.factory.scopes[segments[1]].get(name),
+            operation.message,
+            async (): Promise<any> => {
+              // If there is a custom component level hook for this call
+              // then execute it first.
+              if (slaveHook) {
+                // Do whatever the developer defined in component config
+                return await slaveHook(
+                  (name: string) => this.factory.scopes[segments[1]].get(name),
+                  operation.message,
+                  async (): Promise<any> => {
+                    // Ok cool, let me finish. lol (freaking genius)
+                    return method
+                      ? await method.call(
+                          scope,
+                          operation.message.request.payload,
+                          operation.message.request.metadata,
+                        )
+                      : null;
+                  },
+                );
+              } else {
+                // Else just call the requested method now.
+                return method
+                  ? await method.call(
+                      scope,
+                      operation.message.request.payload,
+                      operation.message.request.metadata,
+                    )
+                  : null;
+              }
+            },
+          );
+          // Resolve promise
+          resolve(result);
+        } catch (e) {
+          reject(e);
+        }
       } else {
         // No access for this method
         resolve({

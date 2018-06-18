@@ -67,7 +67,7 @@ export class CallConnect {
     payload: T,
     metadata: IMetaData = {
       stream: false,
-      subscription: '$anonymous',
+      register: '$anonymous',
     },
   ): Promise<T> {
     // Hard copy the configuration
@@ -123,7 +123,7 @@ export class CallConnect {
     handler: (payload: T, metadata: IMetaData) => void,
     metadata: IMetaData = {
       stream: true,
-      subscription: '$anonymous',
+      register: '$anonymous',
     },
   ) {
     // Hard copy the configuration

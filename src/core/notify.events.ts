@@ -5,5 +5,5 @@
  */
 export class NotifyEvents {
   static CLIENT_CLOSED = 'onixjs:client:closed';
-  static CLIENT_UNSUBSCRIBED = 'onixjs:client:unsubscribed';
+  static STREAM_UNSUBSCRIBED = 'onixjs:stream:unsubscribed';
 }

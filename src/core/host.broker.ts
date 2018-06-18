@@ -14,19 +14,30 @@ import {ListenerCollection, IAppOperation, OperationType} from '@onixjs/sdk';
  * server instead of multiple servers.
  */
 export class HostBroker {
+  /**
+   * @property uuid
+   * @description This uuid will be used as a subscription id since
+   * internally this class uses a listener collection for its own
+   * events.
+   */
   private uuid: string = Utils.uuid();
-
-  private subscriptions: {
+  /**
+   * @property registers
+   * @description This directory contains all the references for any
+   * subscription coming from clients to the host.
+   *
+   * Registers will present in most of the cases several listeners
+   * for different events.
+   *
+   * A subscription represents a client subscribed to this onixjs host
+   * instance, therefore it will have multiple listeners for different
+   * strems. RPC calls immediatly removes its listener
+   */
+  private registers: {
     [key: string]: ListenerCollection;
   } = {
     [this.uuid]: new ListenerCollection(),
   };
-  /**
-   * @prop listeners
-   * @description Instance of ListenerCollection which provides
-   * features to easily handle event listeners.
-   */
-  //private listeners: ListenerCollection = new ListenerCollection();
   /**
    * @constructor
    * @author Jonathan Casarrubias
@@ -68,7 +79,7 @@ export class HostBroker {
     Object.keys(this.apps).forEach((app: string) => {
       if (this.apps[app]) {
         // Add Coordination Listener
-        this.subscriptions[this.uuid]
+        this.registers[this.uuid]
           .namespace(app)
           .add((operation: IAppOperation) => {
             // Verify the operation is some sort of communication (RPC or Stream)
@@ -85,8 +96,8 @@ export class HostBroker {
         // Will broadcast to all listeners registered under
         // the same namespace.
         this.apps[app].process.on('message', data =>
-          Object.keys(this.subscriptions).forEach(index =>
-            this.subscriptions[index].namespace(app).broadcast(data),
+          Object.keys(this.registers).forEach(index =>
+            this.registers[index].namespace(app).broadcast(data),
           ),
         );
       }
@@ -116,32 +127,54 @@ export class HostBroker {
     // Route Message to the right application
     const callee: string = operation.message.rpc.split('.').shift() || '';
     if (
+      // Verify the calle app actually exists
       this.apps[callee] &&
-      this.subscriptions[operation.message.request.metadata.subscription]
+      // Verify the client is actually registered in this onixjs host
+      this.registers[operation.message.request.metadata.register] &&
+      // Also make sure this is a RPC or STREAM Unsubscription calls
+      (OperationType.ONIX_REMOTE_CALL_PROCEDURE ||
+        OperationType.ONIX_REMOTE_CALL_STREAM_UNSUBSCRIBE)
     ) {
-      const index: number = this.subscriptions[
-        operation.message.request.metadata.subscription
+      // Add a new listener for this client subscription stream
+      const index: number = this.registers[
+        operation.message.request.metadata.register
       ]
         .namespace(callee)
         .add((response: IAppOperation) => {
           if (operation.uuid === response.uuid) {
             // Send application response to websocket client
             ws.send(JSON.stringify(response));
-            // If RPC Call remove the listener
+            // If this is a RPC or Stream Unsubscription Call
+            // Then immediatly remove the listener
             if (!operation.message.request.metadata.stream) {
-              this.subscriptions[
-                operation.message.request.metadata.subscription
-              ]
+              this.registers[operation.message.request.metadata.register]
                 .namespace(callee)
                 .remove(index);
+            }
+            // If this was a stream unsubscription call, then remove
+            // the internal stream subscription listener.
+            if (OperationType.ONIX_REMOTE_CALL_STREAM_UNSUBSCRIBE) {
+              // First of all remove the listener
+              this.registers[operation.message.request.metadata.register]
+                .namespace(callee)
+                .remove(operation.message.request.metadata.listener);
             }
           }
         });
       // Route incoming message to the right application
       // through std io stream
       this.apps[callee].process.send(operation);
+      // Also notify the client we just successfully subscribed
+      // A stream, so they are able to unsubscribe later
+      if (operation.message.request.metadata.stream) {
+        const response: IAppOperation = {...operation};
+        response.type = OperationType.ONIX_REMOTE_CALL_STREAM_SUBSCRIBED;
+        response.message.request.metadata.listener = index;
+        response.message.request.payload = {};
+        ws.send(JSON.stringify(response));
+      }
     } else {
-      throw new Error('Unable to find callee application or subscription');
+      console.log('Warning: Unable to find callee application or subscription');
     }
   }
   /**
@@ -159,9 +192,7 @@ export class HostBroker {
     const callee: string = operation.message.rpc.split('.').shift() || '';
     if (this.apps[callee]) {
       // If not validating a valid subscription
-      if (
-        !this.subscriptions[operation.message.request.metadata.subscription]
-      ) {
+      if (!this.registers[operation.message.request.metadata.register]) {
         operation.message.request.payload = {
           code: 404,
           message:
@@ -169,8 +200,8 @@ export class HostBroker {
         };
         return process.send(operation);
       }
-      const index: number = this.subscriptions[
-        operation.message.request.metadata.subscription
+      const index: number = this.registers[
+        operation.message.request.metadata.register
       ]
         .namespace(callee)
         .add((response: IAppOperation) => {
@@ -179,9 +210,7 @@ export class HostBroker {
             process.send(response);
             // If RPC Call remove the listener
             if (!operation.message.request.metadata.stream) {
-              this.subscriptions[
-                operation.message.request.metadata.subscription
-              ]
+              this.registers[operation.message.request.metadata.register]
                 .namespace(callee)
                 .remove(index);
             }
@@ -194,20 +223,27 @@ export class HostBroker {
       throw new Error('Unable to find callee application');
     }
   }
-
+  /**
+   * @method register
+   * @param operation
+   * @param callback
+   * @description This method will register a client, it
+   * will use the UUID generated for this operation, therefore this initial
+   * registration will use the operation.uuid.
+   */
   private register(
     operation: IAppOperation,
     callback: (response: IAppOperation) => void,
   ): string {
     const uuid: string = operation.uuid;
-    this.subscriptions[uuid] = new ListenerCollection();
+    this.registers[uuid] = new ListenerCollection();
     operation.type = OperationType.ONIX_REMOTE_REGISTER_CLIENT_RESPONSE;
     callback(operation);
     return uuid;
   }
 
   private async close(ws: WebSocket) {
-    if (this.subscriptions[ws['onix.uuid']]) {
+    if (this.registers[ws['onix.uuid']]) {
       // Notify Components that this client subscription
       // Has been terminated, therefore listeners needs to be removed.
       // Create Unregistration operation to signal apps for cleaning up.
@@ -219,7 +255,7 @@ export class HostBroker {
           request: {
             metadata: {
               stream: false,
-              subscription: ws['onix.uuid'],
+              register: ws['onix.uuid'],
             },
             payload: {},
           },
@@ -227,10 +263,10 @@ export class HostBroker {
       };
       // Send a client closing signal
       await Promise.all(
-        this.subscriptions[ws['onix.uuid']].namespaces().map(
+        this.registers[ws['onix.uuid']].namespaces().map(
           (app: string) =>
             new Promise((resolve, reject) => {
-              const index: number = this.subscriptions[ws['onix.uuid']]
+              const index: number = this.registers[ws['onix.uuid']]
                 .namespace(app)
                 .add((response: IAppOperation) => {
                   if (
@@ -238,7 +274,7 @@ export class HostBroker {
                     response.type ===
                       OperationType.ONIX_REMOTE_UNREGISTER_CLIENT_RESPONSE
                   ) {
-                    this.subscriptions[ws['onix.uuid']].remove(index);
+                    this.registers[ws['onix.uuid']].remove(index);
                     resolve();
                   }
                 });
@@ -250,7 +286,7 @@ export class HostBroker {
       );
       // Everything is cool now, remove any reference
       // For this subscription
-      delete this.subscriptions[ws['onix.uuid']];
+      delete this.registers[ws['onix.uuid']];
     }
     console.log('A Client has been disconnected');
   }
