@@ -132,8 +132,9 @@ export class HostBroker {
       // Verify the client is actually registered in this onixjs host
       this.registers[operation.message.request.metadata.register] &&
       // Also make sure this is a RPC or STREAM Unsubscription calls
-      (OperationType.ONIX_REMOTE_CALL_PROCEDURE ||
-        OperationType.ONIX_REMOTE_CALL_STREAM_UNSUBSCRIBE)
+      (operation.type === OperationType.ONIX_REMOTE_CALL_PROCEDURE ||
+        operation.type === OperationType.ONIX_REMOTE_CALL_STREAM ||
+        operation.type === OperationType.ONIX_REMOTE_CALL_STREAM_UNSUBSCRIBE)
     ) {
       // Add a new listener for this client subscription stream
       const index: number = this.registers[
