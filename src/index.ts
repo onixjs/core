@@ -34,7 +34,7 @@ export class OnixJS {
    * @description Current Onix Version.
    */
   get version(): string {
-    return '1.0.0-beta.5.1';
+    return '1.0.0-beta.5.2';
   }
   /**
    * @property router
